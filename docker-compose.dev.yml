@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nexus-nginx-dev
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "3000:80"
+    depends_on:
+      - client
+      - server
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexus-postgres-dev
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus_user
+      POSTGRES_PASSWORD: nexus_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis-dev
+    ports:
+      - "6379:6379"
+
+  server:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile.dev
+    container_name: nexus-server-dev
+    command: npm run dev
+    env_file:
+      - ./apps/server/.env.dev
+    volumes:
+      - ./apps/server:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "4000:4000"
+
+  client:
+    build:
+      context: ./apps/client
+      dockerfile: Dockerfile.dev
+    container_name: nexus-client-dev
+    env_file:
+      - ./apps/client/.env.dev
+    volumes:
+      - ./apps/client:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+
+volumes:
+  postgres_dev_data:
