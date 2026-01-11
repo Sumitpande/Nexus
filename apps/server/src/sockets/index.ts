@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
+import { socketAuthMiddleware } from "./auth.middleware";
 
 export function initSocket(httpServer: any, redisClient: any) {
   const io = new Server(httpServer, {
@@ -8,7 +9,7 @@ export function initSocket(httpServer: any, redisClient: any) {
 
   const pubClient = redisClient;
   const subClient = pubClient.duplicate();
-
+  io.use(socketAuthMiddleware);
   io.adapter(createAdapter(pubClient, subClient));
 
   io.on("connection", (socket) => {

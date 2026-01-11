@@ -10,6 +10,7 @@ services:
       POSTGRES_USER: nexus_user
       POSTGRES_PASSWORD: nexus_password
     volumes:
+      - ./apps/server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
