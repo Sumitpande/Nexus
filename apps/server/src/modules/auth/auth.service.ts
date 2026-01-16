@@ -7,6 +7,13 @@ export async function findUserByEmail(email: string) {
   );
   return res.rows[0] || null;
 }
+export async function getUserById(userId: string) {
+  const res = await pool.query(
+    "SELECT id, email, name, is_disabled, created_at, last_login FROM users WHERE id = $1",
+    [userId]
+  );
+  return res.rows[0] || null;
+}
 
 export async function createUser(
   email: string,

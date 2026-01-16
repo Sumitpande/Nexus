@@ -14,7 +14,7 @@ type AuthState = {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  accessToken: null, // ✅ memory only
+  accessToken: null, // memory only
   initialized: false,
 
   login: (payload) => {

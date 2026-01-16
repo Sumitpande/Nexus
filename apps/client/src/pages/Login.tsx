@@ -6,30 +6,6 @@ import { MessageCircle, ArrowLeft } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 const Login = () => {
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!email || !password) {
-  //     toast.error("Error", {
-  //       description: "Please fill in all fields",
-  //     });
-  //     return;
-  //   }
-  //   setIsLoading(true);
-  //   try {
-  //     //   await login(email, password);
-  //     toast.success("Welcome back!", {
-  //       description: "Successfully logged in",
-  //     });
-  //     navigate("/chat");
-  //   } catch (error) {
-  //     toast.error("Error", {
-  //       description: "Failed to login: " + error,
-  //     });
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
   return (
     <div className="min-h-screen bg-gradient-surface flex">
       {/* Left side - Form */}

@@ -1,8 +1,6 @@
 import { api } from "./axios";
 import { useAuthStore } from "@/store/auth.store";
-
-let isRefreshing = false;
-let queue: ((token: string) => void)[] = [];
+import { refreshSession } from "@/api/refresh.manager";
 
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
@@ -17,35 +15,30 @@ api.interceptors.response.use(
   async (err) => {
     const originalRequest = err.config;
 
-    if (err.response?.status === 401 && !originalRequest._retry) {
+    const isAuthEndpoint =
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/signup") ||
+      originalRequest?.url?.includes("/auth/refresh");
+
+    if (
+      err.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthEndpoint
+    ) {
       originalRequest._retry = true;
 
-      if (!isRefreshing) {
-        isRefreshing = true;
+      try {
+        const { accessToken, user } = await refreshSession()!;
 
-        try {
-          const res = await api.post("/auth/refresh");
-          const { accessToken, user } = res.data;
+        useAuthStore.getState().login({ accessToken, user });
 
-          useAuthStore.getState().login({ accessToken, user });
-
-          queue.forEach((cb) => cb(accessToken));
-          queue = [];
-        } catch (refreshError) {
-          useAuthStore.getState().logout();
-          window.location.href = "/login";
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch {
+        useAuthStore.getState().logout();
+        window.location.href = "/login";
+        return Promise.reject(err);
       }
-
-      return new Promise((resolve) => {
-        queue.push((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          resolve(api(originalRequest));
-        });
-      });
     }
 
     return Promise.reject(err);

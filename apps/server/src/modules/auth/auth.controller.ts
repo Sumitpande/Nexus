@@ -2,7 +2,12 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import bcrypt from "bcryptjs";
-import { createUser, findUserByEmail, setLastLogin } from "./auth.service";
+import {
+  createUser,
+  findUserByEmail,
+  getUserById,
+  setLastLogin,
+} from "./auth.service";
 import pool from "../../db/postgres";
 import {
   comparePassword,
@@ -19,6 +24,7 @@ import {
 } from "./refreshStore";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const IsProd = process.env.NODE_ENV === "production";
 
 export async function signup(req: Request, res: Response) {
   const { email, password, name } = req.body;
@@ -90,7 +96,7 @@ export async function login(req: Request, res: Response) {
     const { token: refreshToken, jti } = generateRefreshToken(payload);
 
     await storeRefreshToken(user.id, jti, refreshToken, REFRESH_TTL_SECONDS);
-
+    console.log("refreshToken:", refreshToken);
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === "true",
@@ -140,24 +146,30 @@ export async function refresh(req: Request, res: Response) {
     }
 
     // Rotation: issue new refresh token
-    const { token: newRefresh, jti: newJti } = generateAccessToken({ userId });
+    const { token: newRefresh, jti: newJti } = generateRefreshToken({ userId });
 
     // add new token
     await addRefreshToken(userId, newJti, newRefresh, REFRESH_TTL_SECONDS);
 
     // sign new access token
     const newAccess = generateAccessToken({ userId });
-
+    console.log("refreshToken:::::", newRefresh);
     // set cookie with new refresh token
     res.cookie("refreshToken", newRefresh, {
       httpOnly: true,
-      secure: process.env.COOKIE_SECURE === "true",
-      sameSite: "strict",
+      secure: IsProd,
+      sameSite: IsProd ? "strict" : "lax",
       path: "/api/auth/refresh",
       maxAge: REFRESH_TTL_SECONDS * 1000,
     });
 
-    return res.json({ accessToken: newAccess });
+    // MUST return user
+    const user = await getUserById(userId);
+
+    return res.json({
+      accessToken: newAccess,
+      user: { id: user.id, email: user.email, name: user.name },
+    });
   } catch (err) {
     console.error("Refresh error", err);
     // If Redis is down, fail closed: 401 (or 503 depending on policy)

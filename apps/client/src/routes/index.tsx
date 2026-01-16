@@ -6,6 +6,7 @@ import Layout from "@/pages/Layout";
 import Home from "@/pages/Home";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AuthBootstrap } from "@/components/auth/AuthBootstrap";
+import { AuthRedirect } from "@/components/auth/AuthRedirect";
 
 export default function AppRoutes() {
   return (
@@ -13,8 +14,22 @@ export default function AppRoutes() {
       <AuthBootstrap>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/login"
+            element={
+              <AuthRedirect>
+                <Login />
+              </AuthRedirect>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <AuthRedirect>
+                <Signup />
+              </AuthRedirect>
+            }
+          />
           <Route
             path="/home"
             element={

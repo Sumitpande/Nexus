@@ -1,42 +1,33 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { api } from "@/api/axios";
-import { authResponseSchema } from "@/schema/auth.schema";
 import { useAuthStore } from "@/store/auth.store";
-
-const AUTH_ROUTES = ["/login", "/signup"];
+import { refreshSession } from "@/api/refresh.manager";
 
 export function AuthBootstrap({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { user, accessToken, login, markInitialized } = useAuthStore();
+  const { user, accessToken, login, markInitialized, initialized } =
+    useAuthStore();
 
   useEffect(() => {
-    // ✅ If already authenticated, do NOTHING
+    // Run bootstrap exactly once
+    if (initialized) return;
+
+    // If already authenticated (e.g. after login redirect)
     if (user && accessToken) {
       markInitialized();
       return;
     }
 
-    // 🚫 Skip refresh on auth pages
-    if (AUTH_ROUTES.includes(location.pathname)) {
-      markInitialized();
-      return;
-    }
-
-    async function restore() {
+    (async () => {
       try {
-        const res = await api.post("/auth/refresh");
-        const parsed = authResponseSchema.parse(res.data);
-        login(parsed);
-        navigate("/home");
+        const { accessToken, user } = await refreshSession();
+        login({ accessToken, user });
       } catch {
+        // refresh failed → unauthenticated
+      } finally {
+        // ALWAYS unblock routing
         markInitialized();
       }
-    }
-
-    restore();
-  }, [location.pathname]);
+    })();
+  }, []);
 
   return <>{children}</>;
 }
