@@ -2,7 +2,7 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useThemeStore } from "@/store/theme.store";
 
-export const ThemeToggle = () => {
+export const ThemeToggle = ({ className }: { className?: string }) => {
   const { theme, toggleTheme } = useThemeStore();
 
   return (
@@ -10,7 +10,7 @@ export const ThemeToggle = () => {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="relative overflow-hidden"
+      className={`relative overflow-hidden ${className}`}
     >
       <Sun
         className={`h-5 w-5 transition-all duration-300 ${

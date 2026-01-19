@@ -10,7 +10,6 @@ export async function signup(email: string, password: string, name: string) {
 
 export async function login(email: string, password: string) {
   const res = await api.post("/auth/login", { email, password });
-  console.log("Login response:", res);
   const parsed = authResponseSchema.parse(res.data);
   useAuthStore.getState().login(parsed);
 }

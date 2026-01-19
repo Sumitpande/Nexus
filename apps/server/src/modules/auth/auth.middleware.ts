@@ -16,12 +16,13 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
+  console.log("Auth Header:", auth);
   if (!auth || !auth.startsWith("Bearer ")) return res.sendStatus(401);
 
   const token = auth.split(" ")[1];
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as any;
-    (req as any).user = payload; // { userId }
+    (req as any).userId = payload.userId; // { userId }
     return next();
   } catch (err) {
     // token invalid/expired

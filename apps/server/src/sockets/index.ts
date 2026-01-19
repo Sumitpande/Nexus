@@ -1,16 +1,19 @@
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { socketAuthMiddleware } from "./auth.middleware";
+import { registerChatSocket } from "../modules/chat/chat.socket";
 
 export function initSocket(httpServer: any, redisClient: any) {
   const io = new Server(httpServer, {
-    cors: { origin: "*" },
+    cors: { origin: "*", credentials: true },
   });
 
   const pubClient = redisClient;
   const subClient = pubClient.duplicate();
   io.use(socketAuthMiddleware);
   io.adapter(createAdapter(pubClient, subClient));
+
+  registerChatSocket(io);
 
   io.on("connection", (socket) => {
     console.log("➡️  Socket connected", socket.id);
@@ -27,4 +30,5 @@ export function initSocket(httpServer: any, redisClient: any) {
       console.log("❌  Socket disconnected", socket.id);
     });
   });
+  return io;
 }

@@ -96,7 +96,7 @@ export async function login(req: Request, res: Response) {
     const { token: refreshToken, jti } = generateRefreshToken(payload);
 
     await storeRefreshToken(user.id, jti, refreshToken, REFRESH_TTL_SECONDS);
-    console.log("refreshToken:", refreshToken);
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === "true",
@@ -153,7 +153,7 @@ export async function refresh(req: Request, res: Response) {
 
     // sign new access token
     const newAccess = generateAccessToken({ userId });
-    console.log("refreshToken:::::", newRefresh);
+
     // set cookie with new refresh token
     res.cookie("refreshToken", newRefresh, {
       httpOnly: true,

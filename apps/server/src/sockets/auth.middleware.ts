@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../modules/auth/auth.tokens";
 
 export function socketAuthMiddleware(socket: any, next: any) {
   try {
@@ -8,7 +8,7 @@ export function socketAuthMiddleware(socket: any, next: any) {
       return next(new Error("Authentication error"));
     }
 
-    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as any;
+    const payload = verifyAccessToken(token);
 
     // Attach user info to socket
     socket.user = {

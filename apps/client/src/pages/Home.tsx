@@ -1,3 +1,15 @@
+import { ChatWindow } from "@/components/chat/ChatWindow";
+import SearchUser from "@/components/user/SearchUser";
+
+import { useStore } from "@/store/store";
+
 export default function Home() {
-  return <div>Welcome to Nexus!</div>;
+  const { isSearchOpen, setIsSearchOpen } = useStore();
+
+  return (
+    <>
+      <SearchUser open={isSearchOpen} setOpen={setIsSearchOpen} />
+      <ChatWindow />
+    </>
+  );
 }
