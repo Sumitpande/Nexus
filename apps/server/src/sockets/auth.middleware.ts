@@ -11,7 +11,7 @@ export function socketAuthMiddleware(socket: any, next: any) {
     const payload = verifyAccessToken(token);
 
     // Attach user info to socket
-    socket.user = {
+    socket.data.user = {
       userId: payload.userId,
       email: payload.email,
     };

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { searchUsers } from "./user.http";
+import { searchUsers } from "./user.controller";
 import { requireAuth } from "../auth/auth.middleware";
 
 const userRouter = Router();

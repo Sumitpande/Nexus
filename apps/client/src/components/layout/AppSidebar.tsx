@@ -158,6 +158,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const { user } = useAuthStore();
   const { loading, conversations } = useConversation();
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>

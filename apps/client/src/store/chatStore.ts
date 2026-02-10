@@ -1,5 +1,5 @@
 import type { Conversation } from "@/components/types";
-import { getSocket } from "@/socket/socket";
+
 import { create } from "zustand";
 
 export interface User {
@@ -55,6 +55,12 @@ export interface Participant {
 //   isMuted: boolean;
 // }
 
+type ConversationMessages = {
+  messages: Message[];
+  oldestCursor: string | null;
+  hasMore: boolean;
+};
+
 interface ChatState {
   currentUser: User;
   users: User[];
@@ -63,24 +69,28 @@ interface ChatState {
   activeConversationId: string | null;
   profilePanelOpen: boolean;
   typingUsers: { conversationId: string; userId: string }[];
+  messagesByConversation: Record<string, ConversationMessages>;
 
   // Actions
   setConversations: (conversations: Conversation[]) => void;
   setActiveConversation: (id: string | null) => void;
   toggleProfilePanel: () => void;
-  sendMessage: (conversationId: string, content: string) => void;
-  receiveMessage: (message: Message) => void;
-  ackMessage: (data: { clientMessageId: string; message: Message }) => void;
-  markMessageFailed: (data: { clientMessageId: string }) => void;
-  addReaction: (messageId: string, emoji: string) => void;
-  removeReaction: (messageId: string, emoji: string) => void;
+  // sendMessage: (conversationId: string, content: string) => void;
+  // receiveMessage: (message: Message) => void;
+  // ackMessage: (data: { clientMessageId: string; message: Message }) => void;
+  // markMessageFailed: (data: { clientMessageId: string }) => void;
+  // addReaction: (messageId: string, emoji: string) => void;
+  // removeReaction: (messageId: string, emoji: string) => void;
   markAsRead: (conversationId: string) => void;
-  addMember: (conversationId: string, userId: string) => void;
+  // addMember: (conversationId: string, userId: string) => void;
   // removeMember: (conversationId: string, userId: string) => void;
   // makeAdmin: (conversationId: string, userId: string) => void;
   // removeAdmin: (conversationId: string, userId: string) => void;
   // leaveGroup: (conversationId: string) => void;
   // updateGroupInfo: (conversationId: string, info: Partial<GroupInfo>) => void;
+  setInitialMessages: (conversationId: string, messages: Message[]) => void;
+  prependMessages: (conversationId: string, messages: Message[]) => void;
+  appendMessage: (message: Message) => void;
 }
 
 // Mock users
@@ -438,6 +448,57 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeConversationId: null,
   profilePanelOpen: false,
   typingUsers: [],
+  messagesByConversation: {},
+
+  // Actions
+  setInitialMessages: (conversationId, messages) => {
+    set((state) => ({
+      messagesByConversation: {
+        ...state.messagesByConversation,
+        [conversationId]: {
+          messages,
+          oldestCursor: messages[0]?.timestamp ?? null,
+          hasMore: messages.length === 50, // Assuming page size of 50
+        },
+      },
+    }));
+  },
+
+  prependMessages: (conversationId, messages) =>
+    set((state) => {
+      const existing = state.messagesByConversation[conversationId];
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            messages: [...messages, ...existing.messages],
+            oldestCursor: messages[0]?.timestamp ?? existing.oldestCursor,
+            hasMore: messages.length === 50,
+          },
+        },
+      };
+    }),
+
+  appendMessage: (message) =>
+    set((state) => {
+      const convo = state.messagesByConversation[message.conversationId];
+      if (!convo) return state;
+
+      // prevent duplicates
+      if (convo.messages.find((m) => m.id === message.id)) return state;
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [message.conversationId]: {
+            ...convo,
+            messages: [...convo.messages, message],
+          },
+        },
+      };
+    }),
+
   setConversations: (conversations) => set({ conversations }),
 
   setActiveConversation: (id) => {
@@ -450,94 +511,94 @@ export const useChatStore = create<ChatState>((set, get) => ({
   toggleProfilePanel: () =>
     set((state) => ({ profilePanelOpen: !state.profilePanelOpen })),
 
-  sendMessage: (conversationId, content) => {
-    const clientMessageId = crypto.randomUUID();
-    const socket = getSocket();
-    const newMessage: Message = {
-      id: clientMessageId,
-      conversationId,
-      senderId: "user-1",
-      content,
-      timestamp: new Date().toISOString(),
-      status: "sent",
-      reactions: [],
-      type: "text",
-    };
+  // sendMessage: (conversationId, content) => {
+  //   const clientMessageId = crypto.randomUUID();
+  //   const socket = getSocket();
+  //   const newMessage: Message = {
+  //     id: clientMessageId,
+  //     conversationId,
+  //     senderId: "user-1",
+  //     content,
+  //     timestamp: new Date().toISOString(),
+  //     status: "sent",
+  //     reactions: [],
+  //     type: "text",
+  //   };
 
-    set((state) => ({
-      messages: [...state.messages, newMessage],
-      // conversations: state.conversations.map((conv) =>
-      //   conv.id === conversationId
-      //     ? { ...conv, lastMessage: content, lastMessageTime: "Just now" }
-      //     : conv,
-      // ),
-    }));
+  //   set((state) => ({
+  //     messages: [...state.messages, newMessage],
+  //     // conversations: state.conversations.map((conv) =>
+  //     //   conv.id === conversationId
+  //     //     ? { ...conv, lastMessage: content, lastMessageTime: "Just now" }
+  //     //     : conv,
+  //     // ),
+  //   }));
 
-    socket.emit("message:send", {
-      conversationId,
-      content,
-      clientMessageId,
-    });
+  //   socket.emit("message:send", {
+  //     conversationId,
+  //     content,
+  //     clientMessageId,
+  //   });
 
-    // Simulate message delivery
-    // setTimeout(() => {
-    //   set((state) => ({
-    //     messages: state.messages.map((msg) =>
-    //       msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg,
-    //     ),
-    //   }));
-    // }, 1000);
-  },
+  //   // Simulate message delivery
+  //   // setTimeout(() => {
+  //   //   set((state) => ({
+  //   //     messages: state.messages.map((msg) =>
+  //   //       msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg,
+  //   //     ),
+  //   //   }));
+  //   // }, 1000);
+  // },
 
-  receiveMessage: (message) => {
-    set((state) => ({
-      messages: [...state.messages, message],
-    }));
-  },
+  // receiveMessage: (message) => {
+  //   set((state) => ({
+  //     messages: [...state.messages, message],
+  //   }));
+  // },
 
-  ackMessage: ({ clientMessageId, message }) => {
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === clientMessageId ? message : m,
-      ),
-    }));
-  },
+  // ackMessage: ({ clientMessageId, message }) => {
+  //   set((state) => ({
+  //     messages: state.messages.map((m) =>
+  //       m.id === clientMessageId ? message : m,
+  //     ),
+  //   }));
+  // },
 
-  markMessageFailed: ({ clientMessageId }) => {
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === clientMessageId ? { ...m, status: "failed" } : m,
-      ),
-    }));
-  },
+  // markMessageFailed: ({ clientMessageId }) => {
+  //   set((state) => ({
+  //     messages: state.messages.map((m) =>
+  //       m.id === clientMessageId ? { ...m, status: "failed" } : m,
+  //     ),
+  //   }));
+  // },
 
-  addReaction: (messageId, emoji) => {
-    set((state) => ({
-      messages: state.messages.map((msg) =>
-        msg.id === messageId
-          ? {
-              ...msg,
-              reactions: [...msg.reactions, { emoji, userId: "user-1" }],
-            }
-          : msg,
-      ),
-    }));
-  },
+  // addReaction: (messageId, emoji) => {
+  //   set((state) => ({
+  //     messages: state.messages.map((msg) =>
+  //       msg.id === messageId
+  //         ? {
+  //             ...msg,
+  //             reactions: [...msg.reactions, { emoji, userId: "user-1" }],
+  //           }
+  //         : msg,
+  //     ),
+  //   }));
+  // },
 
-  removeReaction: (messageId, emoji) => {
-    set((state) => ({
-      messages: state.messages.map((msg) =>
-        msg.id === messageId
-          ? {
-              ...msg,
-              reactions: msg.reactions.filter(
-                (r) => !(r.emoji === emoji && r.userId === "user-1"),
-              ),
-            }
-          : msg,
-      ),
-    }));
-  },
+  // removeReaction: (messageId, emoji) => {
+  //   set((state) => ({
+  //     messages: state.messages.map((msg) =>
+  //       msg.id === messageId
+  //         ? {
+  //             ...msg,
+  //             reactions: msg.reactions.filter(
+  //               (r) => !(r.emoji === emoji && r.userId === "user-1"),
+  //             ),
+  //           }
+  //         : msg,
+  //     ),
+  //   }));
+  // },
 
   markAsRead: (conversationId) => {
     set((state) => ({
@@ -552,36 +613,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
   },
 
-  addMember: (conversationId, userId) => {
-    console.log("Adding member:", userId, "to conversation:", conversationId);
-    // const newParticipant: Participant = {
-    //   userId,
-    //   role: "member",
-    //   joinedAt: new Date().toISOString(),
-    // };
-    // const user = get().users.find((u) => u.id === userId);
-    // const systemMessage: Message = {
-    //   id: `msg-${Date.now()}`,
-    //   conversationId,
-    //   senderId: "system",
-    //   content: `${user?.name} joined the group`,
-    //   timestamp: new Date().toLocaleTimeString([], {
-    //     hour: "2-digit",
-    //     minute: "2-digit",
-    //   }),
-    //   status: "read",
-    //   reactions: [],
-    //   type: "system",
-    // };
-    // set((state) => ({
-    //   conversations: state.conversations.map((conv) =>
-    //     conv.id === conversationId
-    //       ? { ...conv, participants: [...conv.participants, newParticipant] }
-    //       : conv,
-    //   ),
-    //   messages: [...state.messages, systemMessage],
-    // }));
-  },
+  // addMember: (conversationId, userId) => {
+  //   console.log("Adding member:", userId, "to conversation:", conversationId);
+  //   // const newParticipant: Participant = {
+  //   //   userId,
+  //   //   role: "member",
+  //   //   joinedAt: new Date().toISOString(),
+  //   // };
+  //   // const user = get().users.find((u) => u.id === userId);
+  //   // const systemMessage: Message = {
+  //   //   id: `msg-${Date.now()}`,
+  //   //   conversationId,
+  //   //   senderId: "system",
+  //   //   content: `${user?.name} joined the group`,
+  //   //   timestamp: new Date().toLocaleTimeString([], {
+  //   //     hour: "2-digit",
+  //   //     minute: "2-digit",
+  //   //   }),
+  //   //   status: "read",
+  //   //   reactions: [],
+  //   //   type: "system",
+  //   // };
+  //   // set((state) => ({
+  //   //   conversations: state.conversations.map((conv) =>
+  //   //     conv.id === conversationId
+  //   //       ? { ...conv, participants: [...conv.participants, newParticipant] }
+  //   //       : conv,
+  //   //   ),
+  //   //   messages: [...state.messages, systemMessage],
+  //   // }));
+  // },
 
   // removeMember: (conversationId, userId) => {
   //   const user = get().users.find((u) => u.id === userId);

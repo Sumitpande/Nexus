@@ -2,10 +2,11 @@ import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { socketAuthMiddleware } from "./auth.middleware";
 import { registerChatSocket } from "../modules/chat/chat.socket";
+import { setIO } from "./socket.instance";
 
 export function initSocket(httpServer: any, redisClient: any) {
   const io = new Server(httpServer, {
-    cors: { origin: "*", credentials: true },
+    cors: { origin: "http://localhost:5173", credentials: true },
   });
 
   const pubClient = redisClient;
@@ -18,17 +19,10 @@ export function initSocket(httpServer: any, redisClient: any) {
   io.on("connection", (socket) => {
     console.log("➡️  Socket connected", socket.id);
 
-    socket.on("join_room", (roomId) => {
-      socket.join(roomId);
-    });
-
-    socket.on("send_message", async (payload) => {
-      io.to(payload.roomId).emit("message_received", payload);
-    });
-
     socket.on("disconnect", () => {
       console.log("❌  Socket disconnected", socket.id);
     });
   });
+  setIO(io);
   return io;
 }

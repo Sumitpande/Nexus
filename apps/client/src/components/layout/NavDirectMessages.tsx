@@ -57,7 +57,7 @@ export function NavDirectMessages({
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={item.avatar as string} alt={item.title} />
                 <AvatarFallback className="rounded-lg">
-                  {item.title[0].toUpperCase()}
+                  {item.title ? item.title?.[0].toUpperCase() : "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">

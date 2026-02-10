@@ -9,18 +9,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useChatUtility } from "@/hooks/useChatUtiliy";
 
 export function ChatInput() {
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { activeConversationId, sendMessage } = useChatStore();
+  const { activeConversationId } = useChatStore();
+  const { sendMessage } = useChatUtility();
 
   if (!activeConversationId) return null;
 
   const handleSend = () => {
     if (message.trim()) {
-      sendMessage(activeConversationId, message.trim());
+      sendMessage(activeConversationId, message.trim(), "text");
       setMessage("");
       textareaRef.current?.focus();
     }

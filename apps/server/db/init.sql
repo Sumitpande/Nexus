@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS messages (
   type TEXT NOT NULL DEFAULT 'text'
     CHECK (type IN ('text', 'system')),
   is_deleted BOOLEAN DEFAULT false,
+  reply_to UUID REFERENCES messages(id) ON DELETE SET NULL
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -81,3 +82,14 @@ CREATE TABLE message_receipts (
   PRIMARY KEY (message_id, user_id)
 );
 
+--- =========================
+-- MESSAGE REACTIONS  
+-- =========================
+CREATE TABLE IF NOT EXISTS message_reactions (
+  message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+
+  PRIMARY KEY (message_id, user_id, emoji)
+);

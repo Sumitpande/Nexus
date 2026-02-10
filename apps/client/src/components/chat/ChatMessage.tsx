@@ -2,24 +2,35 @@ import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatStore } from "@/store/chatStore";
 import { MessageBubble } from "./MessageBubble";
+import { useChatUtility } from "@/hooks/useChatUtiliy";
 
 export function ChatMessages() {
-  const { messages, activeConversationId, conversations } = useChatStore();
+  const { activeConversationId, messagesByConversation, conversations } =
+    useChatStore();
+  const { loadOlderMessages } = useChatUtility();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const conversationState = activeConversationId
+    ? messagesByConversation[activeConversationId]
+    : null;
+
   const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId
-  );
-  const conversationMessages = messages.filter(
-    (m) => m.conversationId === activeConversationId
+    (c) => c.id === activeConversationId,
   );
   const isGroupChat = activeConversation?.type === "group";
+
+  const handleScroll = () => {
+    if (!scrollRef.current || !activeConversationId) return;
+    if (scrollRef.current.scrollTop === 0) {
+      loadOlderMessages(activeConversationId);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [conversationMessages]);
+  }, [conversationState?.messages.length]);
 
   if (!activeConversationId) {
     return (
@@ -50,21 +61,22 @@ export function ChatMessages() {
   // Determine if we should show sender info (different sender from previous message)
   const shouldShowSenderInfo = (index: number) => {
     if (index === 0) return true;
-    const currentMessage = conversationMessages[index];
-    const previousMessage = conversationMessages[index - 1];
+    const currentMessage = conversationState?.messages[index];
+    const previousMessage = conversationState?.messages[index - 1];
     return (
-      currentMessage.senderId !== previousMessage.senderId ||
-      previousMessage.type === "system"
+      currentMessage?.senderId !== previousMessage?.senderId ||
+      previousMessage?.type === "system"
     );
   };
 
   return (
     <ScrollArea
       ref={scrollRef}
+      onScroll={handleScroll}
       className="flex-1 bg-linear-to-b from-muted/20 to-muted/40 h-[calc(100vh-155px)] overflow-auto"
     >
       <div className="py-4 space-y-1">
-        {conversationMessages.map((message, index) => (
+        {conversationState?.messages.map((message, index) => (
           <MessageBubble
             key={message.id}
             message={message}

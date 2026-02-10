@@ -1,24 +1,35 @@
 import { useEffect } from "react";
-import { getSocket, connectSocket } from "@/socket/socket";
+import { getSocket } from "@/socket/socket";
+
+import { useChatUtility } from "@/hooks/useChatUtiliy";
 import { useChatStore } from "@/store/chatStore";
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const receiveMessage = useChatStore((s) => s.receiveMessage);
-  const ackMessage = useChatStore((s) => s.ackMessage);
-  const markMessageFailed = useChatStore((s) => s.markMessageFailed);
-
+  const { onSocketRecieveMessage, onSocketAckMessage, onSocketMessageFailed } =
+    useChatUtility();
+  const { conversations } = useChatStore();
   useEffect(() => {
-    connectSocket();
     const socket = getSocket();
+    if (!socket) {
+      return;
+    }
+    socket.on("message:new", onSocketRecieveMessage);
+    socket.on("message:ack", onSocketAckMessage);
+    socket.on("message:error", onSocketMessageFailed);
 
-    socket.on("message:new", receiveMessage);
-    socket.on("message:ack", ackMessage);
-    socket.on("message:error", markMessageFailed);
+    socket.on("connect", () => {
+      console.log("Socket connected, joining rooms...");
+
+      conversations.forEach((id) => {
+        socket.emit("conversation:join", id);
+      });
+    });
 
     return () => {
-      socket.off("message:new", receiveMessage);
-      socket.off("message:ack", ackMessage);
-      socket.off("message:error", markMessageFailed);
+      socket.off("message:new", onSocketRecieveMessage);
+      socket.off("message:ack", onSocketAckMessage);
+      socket.off("message:error", onSocketMessageFailed);
+      socket.off("connect");
     };
   }, []);
 

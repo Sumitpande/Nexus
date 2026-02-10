@@ -120,7 +120,9 @@ export function ChatHeader() {
               alt={activeConversation.title}
             />
             <AvatarFallback>
-              {activeConversation.title[0].toUpperCase()}
+              {activeConversation.title
+                ? activeConversation.title?.[0].toUpperCase()
+                : "U"}
             </AvatarFallback>
           </Avatar>
           {/* )} */}

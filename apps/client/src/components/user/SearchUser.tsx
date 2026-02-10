@@ -18,10 +18,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
 import { searchUsers } from "@/api/user.api";
 import type { User } from "@/schema/auth.schema";
 import { createConversation } from "@/api/chat.api";
+import { useChatStore } from "@/store/chatStore";
+import { useChatUtility } from "@/hooks/useChatUtiliy";
 
 export default function SearchUser({
   open,
@@ -30,23 +34,21 @@ export default function SearchUser({
   open: boolean;
   setOpen: (open: boolean) => void;
 }) {
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const { setConversations, conversations, setActiveConversation } =
+    useChatStore();
+  const { joinConversation } = useChatUtility();
   const [results, setResults] = useState<User[]>([]);
-
-  const onUserSelect = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
+  const navigate = useNavigate();
+  const onUserSelect = (user: User) => {
+    if (selectedUsers.map((u) => u.id).includes(user.id)) {
       return setSelectedUsers(
-        selectedUsers.filter((selectedUserId) => selectedUserId !== userId),
+        selectedUsers.filter((selectedUser) => selectedUser.id !== user.id),
       );
     }
-    setSelectedUsers([...selectedUsers, userId]);
-  };
-
-  const getUser = (id: string) => {
-    return results.find((user) => user.id === id)!;
+    setSelectedUsers([...selectedUsers, user]);
   };
 
   useEffect(() => {
@@ -67,7 +69,14 @@ export default function SearchUser({
 
   const createNewConversation = async () => {
     try {
-      await createConversation(selectedUsers);
+      const data = await createConversation(selectedUsers.map((u) => u.id));
+      setConversations([data, ...conversations]);
+      setActiveConversation(data.id);
+      setSelectedUsers([]);
+      setQuery("");
+      setResults([]);
+      joinConversation(data.id);
+      navigate(`/home/${data.id}`);
       setOpen(false);
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -108,7 +117,7 @@ export default function SearchUser({
                 <CommandItem
                   key={user.id}
                   className="flex items-center px-2 cursor-pointer"
-                  onSelect={() => onUserSelect(user.id)}
+                  onSelect={() => onUserSelect(user)}
                 >
                   <Avatar>
                     <AvatarImage src={""} alt="Image" />
@@ -122,7 +131,7 @@ export default function SearchUser({
                       {user.email}
                     </p>
                   </div>
-                  {selectedUsers.includes(user.id) ? (
+                  {selectedUsers.map((u) => u.id).includes(user.id) ? (
                     <Check className="ml-auto flex h-5 w-5 text-primary" />
                   ) : null}
                 </CommandItem>
@@ -133,13 +142,13 @@ export default function SearchUser({
         <DialogFooter className="flex items-center border-t p-4 sm:justify-between">
           {selectedUsers.length > 0 ? (
             <div className="flex -space-x-2 overflow-hidden">
-              {selectedUsers.map((id) => (
+              {selectedUsers.map((user) => (
                 <Avatar
-                  key={id}
+                  key={user.id}
                   className="inline-block border-2 border-background"
                 >
                   <AvatarImage src={""} />
-                  <AvatarFallback>{getUser(id).name[0]}</AvatarFallback>
+                  <AvatarFallback>{user.name[0]}</AvatarFallback>
                 </Avatar>
               ))}
             </div>

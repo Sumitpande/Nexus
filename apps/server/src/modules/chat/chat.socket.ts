@@ -3,9 +3,7 @@ import { isUserInConversation, saveMessage } from "./chat.service";
 
 export function registerChatSocket(io: Server) {
   io.on("connection", (socket: Socket) => {
-    const userId = socket.data.userId;
-
-    console.log("💬 Chat socket connected:", userId);
+    const userId = socket.data.user.userId;
 
     socket.on("conversation:join", async (conversationId: string) => {
       const allowed = await isUserInConversation(userId, conversationId);
