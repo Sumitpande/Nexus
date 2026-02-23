@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS messages (
   type TEXT NOT NULL DEFAULT 'text'
     CHECK (type IN ('text', 'system')),
   is_deleted BOOLEAN DEFAULT false,
-  reply_to UUID REFERENCES messages(id) ON DELETE SET NULL
+  reply_to UUID REFERENCES messages(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 

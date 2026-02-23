@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { Check, CheckCheck, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useChatStore, type Message } from "@/store/chatStore";
+import { type Message } from "@/store/chatStore";
 import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAuthStore } from "@/store/auth.store";
+import type { Conversation } from "../types";
+import { formatMessageDate } from "@/utils";
 
 interface MessageBubbleProps {
   message: Message;
   isGroupChat: boolean;
+  activeConversation: Conversation;
   showSenderInfo: boolean;
 }
 
@@ -29,32 +29,26 @@ const SENDER_COLORS = [
   "text-indigo-500",
 ];
 
-export function MessageBubble({
-  message,
-  isGroupChat,
-  showSenderInfo,
-}: MessageBubbleProps) {
-  const { users, currentUser, addReaction, removeReaction } = useChatStore();
+export function MessageBubble({ message, isGroupChat, activeConversation, showSenderInfo }: MessageBubbleProps) {
+  const { user } = useAuthStore();
   const [showReactions, setShowReactions] = useState(false);
 
-  const sender = users.find((u) => u.id === message.senderId);
-  const isOwnMessage = message.senderId === currentUser.id;
+  const sender = activeConversation.participants.find((u) => u.id === message.senderId);
+  const isOwnMessage = message.senderId === user?.id;
   const isSystemMessage = message.type === "system";
 
   // Get consistent color for sender
   const getSenderColor = (userId: string) => {
-    const index = users.findIndex((u) => u.id === userId);
+    const index = activeConversation.participants.findIndex((u) => u.id === userId);
     return SENDER_COLORS[index % SENDER_COLORS.length];
   };
 
   const handleReaction = (emoji: string) => {
-    const existingReaction = message.reactions.find(
-      (r) => r.emoji === emoji && r.userId === currentUser.id
-    );
+    const existingReaction = message.reactions.find((r) => r.emoji === emoji && r.userId === user?.id);
     if (existingReaction) {
-      removeReaction(message.id, emoji);
+      // removeReaction(message.id, emoji);
     } else {
-      addReaction(message.id, emoji);
+      // addReaction(message.id, emoji);
     }
     setShowReactions(false);
   };
@@ -62,66 +56,45 @@ export function MessageBubble({
   const getReactionUsers = (emoji: string) => {
     return message.reactions
       .filter((r) => r.emoji === emoji)
-      .map((r) => users.find((u) => u.id === r.userId)?.name || "Unknown")
+      .map((r) => activeConversation.participants.find((u) => u.id === r.userId)?.name || "Unknown")
       .join(", ");
   };
 
   // Group reactions by emoji
-  const groupedReactions = message.reactions.reduce((acc, reaction) => {
-    if (!acc[reaction.emoji]) {
-      acc[reaction.emoji] = [];
-    }
-    acc[reaction.emoji].push(reaction.userId);
-    return acc;
-  }, {} as Record<string, string[]>);
+  const groupedReactions = message.reactions.reduce(
+    (acc, reaction) => {
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = [];
+      }
+      acc[reaction.emoji].push(reaction.userId);
+      return acc;
+    },
+    {} as Record<string, string[]>,
+  );
 
   if (isSystemMessage) {
     return (
       <div className="flex justify-center py-2">
-        <span className="rounded-lg bg-muted/80 px-3 py-1 text-xs text-muted-foreground">
-          {message.content}
-        </span>
+        <span className="rounded-lg bg-muted/80 px-3 py-1 text-xs text-muted-foreground">{message.content}</span>
       </div>
     );
   }
-
   return (
-    <div
-      className={cn(
-        "group flex gap-2 px-4 py-1",
-        isOwnMessage ? "flex-row-reverse" : "flex-row"
-      )}
-    >
+    <div className={cn("group flex gap-2 px-4 py-1", isOwnMessage ? "flex-row-reverse" : "flex-row")}>
       {/* Avatar for group chats */}
       {isGroupChat && !isOwnMessage && showSenderInfo && (
-        <Avatar className="h-8 w-8 flex-shrink-0 mt-5">
-          <AvatarImage src={sender?.avatar} alt={sender?.name} />
-          <AvatarFallback className="text-xs">
-            {sender?.name?.[0]}
-          </AvatarFallback>
+        <Avatar className="h-8 w-8 shrink-0 mt-5">
+          <AvatarImage src={"A"} alt={sender?.name} />
+          <AvatarFallback className="text-xs">{sender?.name?.[0]}</AvatarFallback>
         </Avatar>
       )}
-      {isGroupChat && !isOwnMessage && !showSenderInfo && (
-        <div className="w-8 flex-shrink-0" />
-      )}
+      {isGroupChat && !isOwnMessage && !showSenderInfo && <div className="w-8 shrink-0" />}
 
       {/* Message content */}
-      <div
-        className={cn(
-          "max-w-[70%]",
-          isOwnMessage ? "items-end" : "items-start"
-        )}
-      >
+      <div className={cn("max-w-[70%]", isOwnMessage ? "items-end" : "items-start")}>
         {/* Sender name for group chats */}
         {isGroupChat && !isOwnMessage && showSenderInfo && (
-          <p
-            className={cn(
-              "text-xs font-medium mb-1 ml-3",
-              getSenderColor(message.senderId)
-            )}
-          >
-            {sender?.name}
-          </p>
+          <p className={cn("text-xs font-medium mb-1 ml-3", getSenderColor(message.senderId))}>{sender?.name}</p>
         )}
 
         <div className="relative">
@@ -131,43 +104,21 @@ export function MessageBubble({
               "relative rounded-2xl px-4 py-2 shadow-sm",
               isOwnMessage
                 ? "bg-primary text-primary-foreground rounded-br-md"
-                : "bg-muted text-foreground rounded-bl-md"
+                : "bg-muted text-foreground rounded-bl-md",
             )}
           >
-            <p className="text-sm whitespace-pre-wrap break-words">
-              {message.content}
-            </p>
+            <p className="text-sm whitespace-pre-wrap wrap-break-words">{message.content}</p>
 
             {/* Timestamp and status */}
-            <div
-              className={cn(
-                "flex items-center gap-1 mt-1",
-                isOwnMessage ? "justify-end" : "justify-start"
-              )}
-            >
+            <div className={cn("flex items-center gap-1 mt-1", isOwnMessage ? "justify-end" : "justify-start")}>
               <span
-                className={cn(
-                  "text-[10px]",
-                  isOwnMessage
-                    ? "text-primary-foreground/70"
-                    : "text-muted-foreground"
-                )}
+                className={cn("text-[10px]", isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground")}
               >
-                {message.timestamp}
+                {formatMessageDate(message.timestamp)}
               </span>
               {isOwnMessage && (
-                <span
-                  className={cn(
-                    message.status === "read"
-                      ? "text-blue-400"
-                      : "text-primary-foreground/70"
-                  )}
-                >
-                  {message.status === "sent" ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <CheckCheck className="h-3 w-3" />
-                  )}
+                <span className={cn(message.status === "read" ? "text-blue-400" : "text-primary-foreground/70")}>
+                  {message.status === "sent" ? <Check className="h-3 w-3" /> : <CheckCheck className="h-3 w-3" />}
                 </span>
               )}
             </div>
@@ -180,7 +131,7 @@ export function MessageBubble({
                 className={cn(
                   "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity",
                   "h-7 w-7 rounded-full bg-card border border-border shadow-sm flex items-center justify-center hover:bg-muted",
-                  isOwnMessage ? "-left-9" : "-right-9"
+                  isOwnMessage ? "-left-9" : "-right-9",
                 )}
               >
                 <Smile className="h-4 w-4 text-muted-foreground" />
@@ -194,9 +145,7 @@ export function MessageBubble({
                     onClick={() => handleReaction(emoji)}
                     className={cn(
                       "h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center text-lg transition-transform hover:scale-110",
-                      message.reactions.some(
-                        (r) => r.emoji === emoji && r.userId === currentUser.id
-                      ) && "bg-muted"
+                      message.reactions.some((r) => r.emoji === emoji && r.userId === user?.id) && "bg-muted",
                     )}
                   >
                     {emoji}
@@ -208,12 +157,7 @@ export function MessageBubble({
 
           {/* Reactions display */}
           {Object.keys(groupedReactions).length > 0 && (
-            <div
-              className={cn(
-                "absolute -bottom-3 flex gap-1",
-                isOwnMessage ? "right-2" : "left-2"
-              )}
-            >
+            <div className={cn("absolute -bottom-3 flex gap-1", isOwnMessage ? "right-2" : "left-2")}>
               {Object.entries(groupedReactions).map(([emoji, userIds]) => (
                 <button
                   key={emoji}
@@ -222,11 +166,7 @@ export function MessageBubble({
                   title={getReactionUsers(emoji)}
                 >
                   <span>{emoji}</span>
-                  {userIds.length > 1 && (
-                    <span className="text-muted-foreground">
-                      {userIds.length}
-                    </span>
-                  )}
+                  {userIds.length > 1 && <span className="text-muted-foreground">{userIds.length}</span>}
                 </button>
               ))}
             </div>

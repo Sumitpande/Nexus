@@ -14,6 +14,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       connectSocket();
     } else {
       disconnectSocket();
+      console.log("disconnecting...");
     }
 
     return () => {

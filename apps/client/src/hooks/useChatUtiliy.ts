@@ -57,17 +57,17 @@ export const useChatUtility = () => {
 
     // socket.emit("message:send", { cid, message });
   };
-  const onSocketRecieveMessage = (dto: Message) => {
+  const onSocketReceiveMessage = (dto: Message) => {
     console.log("New message received via socket:", dto);
     appendMessage(dto);
   };
-  const onSocketAckMessage = () => {};
-  const onSocketMessageFailed = () => {};
+  const onSocketAckMessage = () => { };
+  const onSocketMessageFailed = () => { };
 
   return {
     joinConversation,
     sendMessage,
-    onSocketRecieveMessage,
+    onSocketReceiveMessage,
     onSocketAckMessage,
     onSocketMessageFailed,
     loadInitialMessages,

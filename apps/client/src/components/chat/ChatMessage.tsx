@@ -5,18 +5,13 @@ import { MessageBubble } from "./MessageBubble";
 import { useChatUtility } from "@/hooks/useChatUtiliy";
 
 export function ChatMessages() {
-  const { activeConversationId, messagesByConversation, conversations } =
-    useChatStore();
+  const { activeConversationId, messagesByConversation, conversations } = useChatStore();
   const { loadOlderMessages } = useChatUtility();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const conversationState = activeConversationId ? messagesByConversation[activeConversationId] : null;
 
-  const conversationState = activeConversationId
-    ? messagesByConversation[activeConversationId]
-    : null;
-
-  const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId,
-  );
+  const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const isGroupChat = activeConversation?.type === "group";
 
   const handleScroll = () => {
@@ -27,10 +22,11 @@ export function ChatMessages() {
   };
 
   useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [conversationState?.messages.length]);
+  }, [conversationState?.messages]);
 
   if (!activeConversationId) {
     return (
@@ -47,12 +43,8 @@ export function ChatMessages() {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-foreground mb-2">
-            Welcome to Chat
-          </h3>
-          <p className="text-muted-foreground max-w-sm">
-            Select a conversation from the list to start messaging
-          </p>
+          <h3 className="text-xl font-semibold text-foreground mb-2">Welcome to Chat</h3>
+          <p className="text-muted-foreground max-w-sm">Select a conversation from the list to start messaging</p>
         </div>
       </div>
     );
@@ -63,28 +55,25 @@ export function ChatMessages() {
     if (index === 0) return true;
     const currentMessage = conversationState?.messages[index];
     const previousMessage = conversationState?.messages[index - 1];
-    return (
-      currentMessage?.senderId !== previousMessage?.senderId ||
-      previousMessage?.type === "system"
-    );
+    return currentMessage?.senderId !== previousMessage?.senderId || previousMessage?.type === "system";
   };
 
   return (
     <ScrollArea
       ref={scrollRef}
       onScroll={handleScroll}
-      className="flex-1 bg-linear-to-b from-muted/20 to-muted/40 h-[calc(100vh-155px)] overflow-auto"
+      className=" flex-1 bg-linear-to-b from-muted/20 to-muted/40 h-[calc(100vh-155px)] overflow-auto"
     >
-      <div className="py-4 space-y-1">
-        {conversationState?.messages.map((message, index) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isGroupChat={isGroupChat || false}
-            showSenderInfo={shouldShowSenderInfo(index)}
-          />
-        ))}
-      </div>
+      {conversationState?.messages.map((message, index) => (
+        <MessageBubble
+          key={message.id}
+          message={message}
+          isGroupChat={isGroupChat || false}
+          activeConversation={activeConversation!}
+          showSenderInfo={shouldShowSenderInfo(index)}
+        />
+      ))}
+      <div ref={bottomRef} />
     </ScrollArea>
   );
 }

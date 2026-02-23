@@ -377,7 +377,7 @@ export async function createMessage(
     [conversationId, senderId, content, replyTo, type],
   );
 
-  return result.rows[0];
+  return mapMessages(result.rows)[0];
 }
 
 async function validateReply(conversationId: string, replyTo: string) {
@@ -500,10 +500,10 @@ function mapMessages(rows: any[]) {
         type: row.type,
         replyTo: row.reply_id
           ? {
-              id: row.reply_id,
-              content: row.reply_content,
-              senderId: row.reply_sender,
-            }
+            id: row.reply_id,
+            content: row.reply_content,
+            senderId: row.reply_sender,
+          }
           : null,
         reactions: [],
       });

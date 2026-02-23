@@ -20,15 +20,8 @@ export function ChatHeader() {
     setActiveConversation,
   } = useChatStore();
 
-  const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId,
-  );
-  console.log(
-    "Active conversation in header:",
-    conversations,
-    activeConversationId,
-    activeConversation,
-  );
+  const activeConversation = conversations.find((c) => c.id === activeConversationId);
+
   if (!activeConversation) return null;
 
   const isGroup = activeConversation.type === "group";
@@ -84,19 +77,11 @@ export function ChatHeader() {
     <div className="flex items-center justify-between border-b border-border rounded-t-xl bg-card px-4 py-3">
       {/* Left section */}
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 md:hidden"
-          onClick={() => setActiveConversation(null)}
-        >
+        <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden" onClick={() => setActiveConversation(null)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
-        <button
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          onClick={toggleProfilePanel}
-        >
+        <button className="flex items-center gap-3 hover:opacity-80 transition-opacity" onClick={toggleProfilePanel}>
           {/* {isGroup ? (
             <div className="relative h-10 w-10">
               {groupAvatars.slice(0, 2).map((user, index) => (
@@ -115,22 +100,15 @@ export function ChatHeader() {
             </div>
           ) : ( */}
           <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={activeConversation.avatar as string}
-              alt={activeConversation.title}
-            />
+            <AvatarImage src={activeConversation.avatar as string} alt={activeConversation.title} />
             <AvatarFallback>
-              {activeConversation.title
-                ? activeConversation.title?.[0].toUpperCase()
-                : "U"}
+              {activeConversation.title ? activeConversation.title?.[0].toUpperCase() : "U"}
             </AvatarFallback>
           </Avatar>
           {/* )} */}
 
           <div className="text-left">
-            <h2 className="font-semibold text-foreground">
-              {activeConversation.title}
-            </h2>
+            <h2 className="font-semibold text-foreground">{activeConversation.title}</h2>
             <p className="text-xs text-muted-foreground">online</p>
           </div>
         </button>
@@ -154,21 +132,15 @@ export function ChatHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={toggleProfilePanel}>
-              {isGroup ? "Group info" : "Contact info"}
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleProfilePanel}>{isGroup ? "Group info" : "Contact info"}</DropdownMenuItem>
             <DropdownMenuItem>Select messages</DropdownMenuItem>
             <DropdownMenuItem>Mute notifications</DropdownMenuItem>
             <DropdownMenuItem>Clear messages</DropdownMenuItem>
             <DropdownMenuSeparator />
             {isGroup ? (
-              <DropdownMenuItem className="text-destructive">
-                Exit group
-              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive">Exit group</DropdownMenuItem>
             ) : (
-              <DropdownMenuItem className="text-destructive">
-                Block
-              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive">Block</DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>

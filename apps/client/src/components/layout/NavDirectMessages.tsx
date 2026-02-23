@@ -12,14 +12,9 @@ import { PlusCircle } from "lucide-react";
 import { useStore } from "@/store/store";
 import type { Conversation } from "../types";
 import { useNavigate } from "react-router-dom";
+import { formatMessageDate } from "@/utils";
 
-export function NavDirectMessages({
-  conversations,
-  loading,
-}: {
-  conversations: Conversation[];
-  loading: boolean;
-}) {
+export function NavDirectMessages({ conversations, loading }: { conversations: Conversation[]; loading: boolean }) {
   //   const { isMobile } = useSidebar();
   const { setIsSearchOpen } = useStore();
   const navigate = useNavigate();
@@ -64,9 +59,7 @@ export function NavDirectMessages({
                 <span className="truncate font-medium">{item.title}</span>
                 <span className="truncate text-xs">{item.lastMessage}</span>
               </div>
-              <div className="ml-auto size-4 text-xs font-light">
-                {item.lastMessageTime}
-              </div>
+              <div className="ml-auto  text-nowrap text-xs font-light">{formatMessageDate(item.lastMessageTime)}</div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
