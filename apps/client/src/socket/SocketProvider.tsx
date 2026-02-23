@@ -17,10 +17,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log("disconnecting...");
     }
 
+    return () => {};
+  }, [isAuthenticated, initialized]);
+
+  // Cleanup only on unmount
+  useEffect(() => {
     return () => {
       disconnectSocket();
+      console.log("disconnecting (unmount)...");
     };
-  }, [isAuthenticated, initialized]);
+  }, []);
 
   return <>{children}</>;
 }
