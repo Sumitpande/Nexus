@@ -6,11 +6,15 @@ export function registerChatSocket(io: Server) {
     const userId = socket.data.user.userId;
 
     socket.on("conversation:join", async (conversationId: string) => {
-      console.log("----------", userId, conversationId)
-      // const allowed = await isUserInConversation(userId, conversationId);
-      // if (!allowed) return;
-      console.log("joining conversation: ", conversationId, socket.data.user)
-      socket.join(conversationId);
+
+      try {
+        const allowed = await isUserInConversation(userId, conversationId);
+        if (!allowed) return;
+        console.log("joining conversation: ", conversationId, socket.data.user)
+        socket.join(conversationId);
+      } catch (error) {
+        console.error("Join error:", error);
+      }
     });
 
     socket.on(
