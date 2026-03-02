@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, CheckCheck, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type Message } from "@/store/chatStore";
@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuthStore } from "@/store/auth.store";
 import type { Conversation } from "../types";
 import { formatMessageDate } from "@/utils";
+import { useChatUtility } from "@/hooks/useChatUtility";
 
 interface MessageBubbleProps {
   message: Message;
@@ -32,10 +33,18 @@ const SENDER_COLORS = [
 export function MessageBubble({ message, isGroupChat, activeConversation, showSenderInfo }: MessageBubbleProps) {
   const { user } = useAuthStore();
   const [showReactions, setShowReactions] = useState(false);
-
+  const { toggleReaction } = useChatUtility();
   const sender = activeConversation.participants.find((u) => u.id === message.senderId);
   const isOwnMessage = message.senderId === user?.id;
   const isSystemMessage = message.type === "system";
+
+  const participantMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    activeConversation.participants.forEach((p) => {
+      map[p.id] = p.name;
+    });
+    return map;
+  }, [activeConversation.participants]);
 
   // Get consistent color for sender
   const getSenderColor = (userId: string) => {
@@ -44,33 +53,15 @@ export function MessageBubble({ message, isGroupChat, activeConversation, showSe
   };
 
   const handleReaction = (emoji: string) => {
-    const existingReaction = message.reactions.find((r) => r.emoji === emoji && r.userId === user?.id);
-    if (existingReaction) {
-      // removeReaction(message.id, emoji);
-    } else {
-      // addReaction(message.id, emoji);
-    }
+    toggleReaction(activeConversation.id, message.id, emoji);
     setShowReactions(false);
   };
 
   const getReactionUsers = (emoji: string) => {
-    return message.reactions
-      .filter((r) => r.emoji === emoji)
-      .map((r) => activeConversation.participants.find((u) => u.id === r.userId)?.name || "Unknown")
-      .join(", ");
+    return (message.reactions?.[emoji] ?? []).map((id) => participantMap[id] ?? "Unknown").join(", ");
   };
 
-  // Group reactions by emoji
-  const groupedReactions = message.reactions.reduce(
-    (acc, reaction) => {
-      if (!acc[reaction.emoji]) {
-        acc[reaction.emoji] = [];
-      }
-      acc[reaction.emoji].push(reaction.userId);
-      return acc;
-    },
-    {} as Record<string, string[]>,
-  );
+  const hasReacted = (emoji: string) => !!message.reactions?.[emoji]?.includes(user?.id ?? "");
 
   if (isSystemMessage) {
     return (
@@ -137,28 +128,31 @@ export function MessageBubble({ message, isGroupChat, activeConversation, showSe
                 <Smile className="h-4 w-4 text-muted-foreground" />
               </button>
             </PopoverTrigger>
+
             <PopoverContent className="w-auto p-2" side="top">
               <div className="flex gap-1">
-                {REACTION_EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => handleReaction(emoji)}
-                    className={cn(
-                      "h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center text-lg transition-transform hover:scale-110",
-                      message.reactions.some((r) => r.emoji === emoji && r.userId === user?.id) && "bg-muted",
-                    )}
-                  >
-                    {emoji}
-                  </button>
-                ))}
+                {REACTION_EMOJIS.map((emoji) => {
+                  return (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReaction(emoji)}
+                      className={cn(
+                        "h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center text-lg transition-transform hover:scale-110",
+                        hasReacted(emoji) && "bg-muted",
+                      )}
+                    >
+                      {emoji}
+                    </button>
+                  );
+                })}
               </div>
             </PopoverContent>
           </Popover>
 
           {/* Reactions display */}
-          {Object.keys(groupedReactions).length > 0 && (
+          {message.reactions && Object.keys(message.reactions).length > 0 && (
             <div className={cn("absolute -bottom-3 flex gap-1", isOwnMessage ? "right-2" : "left-2")}>
-              {Object.entries(groupedReactions).map(([emoji, userIds]) => (
+              {Object.entries(message.reactions).map(([emoji, userIds]) => (
                 <button
                   key={emoji}
                   onClick={() => handleReaction(emoji)}

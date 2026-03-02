@@ -46,3 +46,22 @@ export const getMessagesApi = async (
   const res = await api.get(`/chat/conversations/${cid}/messages${query}`);
   return res.data;
 };
+
+export const addReactionApi = async (messageId: string, emoji: string) => {
+  const res = await api.post(`/chat/reaction`, {
+    messageId,
+    emoji
+  });
+  return res.data;
+}
+
+export const removeReactionApi = async (messageId: string, emoji: string) => {
+  const res = await api.delete(`/chat/reaction`, {
+    data: {
+      messageId,
+      emoji
+    }
+  });
+  return res.data;
+}
+

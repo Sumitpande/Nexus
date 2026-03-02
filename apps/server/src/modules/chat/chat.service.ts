@@ -399,27 +399,57 @@ export async function addReaction(
   userId: string,
   emoji: string,
 ) {
-  await pool.query(
+  const result = await pool.query(
     `
-    INSERT INTO message_reactions (message_id, user_id, emoji)
-    VALUES ($1, $2, $3)
-    ON CONFLICT DO NOTHING
+    WITH inserted AS (
+      INSERT INTO message_reactions (message_id, user_id, emoji)
+      VALUES ($1, $2, $3)
+      ON CONFLICT DO NOTHING
+      RETURNING message_id, user_id, emoji
+    )
+    SELECT 
+      m.conversation_id,
+      i.message_id,
+      i.user_id,
+      i.emoji
+    FROM inserted i
+    JOIN messages m ON m.id = i.message_id
     `,
     [messageId, userId, emoji],
   );
+
+  return result.rows[0]; // may be undefined if conflict
 }
+
 export async function removeReaction(
   messageId: string,
   userId: string,
   emoji: string,
 ) {
-  await pool.query(
+  const result = await pool.query(
     `
     DELETE FROM message_reactions
-    WHERE message_id = $1 AND user_id = $2 AND emoji = $3
+    WHERE message_id = $1
+      AND user_id = $2
+      AND emoji = $3
+    RETURNING message_id, user_id, emoji
     `,
     [messageId, userId, emoji],
   );
+
+  if (result.rowCount === 0) return null;
+
+  const conversation = await pool.query(
+    `SELECT conversation_id FROM messages WHERE id = $1`,
+    [messageId],
+  );
+
+  return {
+    conversation_id: conversation.rows[0].conversation_id,
+    message_id: messageId,
+    user_id: userId,
+    emoji,
+  };
 }
 
 export async function getMessages(
@@ -505,15 +535,12 @@ function mapMessages(rows: any[]) {
             senderId: row.reply_sender,
           }
           : null,
-        reactions: [],
+        reactions: {},
       });
     }
 
-    if (row.emoji) {
-      map.get(row.id).reactions.push({
-        emoji: row.emoji,
-        userIds: row.user_ids,
-      });
+    if (row.emoji && row.user_ids) {
+      map.get(row.id).reactions[row.emoji] = row.user_ids
     }
   }
 

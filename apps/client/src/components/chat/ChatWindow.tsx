@@ -4,7 +4,7 @@ import { ChatInput } from "./ChatInput";
 import { useChatStore } from "@/store/chatStore";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
-import { useChatUtility } from "@/hooks/useChatUtiliy";
+import { useChatUtility } from "@/hooks/useChatUtility";
 
 export function ChatWindow() {
   const { activeConversationId } = useChatStore();

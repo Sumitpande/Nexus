@@ -4,12 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useChatStore } from "@/store/chatStore";
 import { EmojiPicker } from "./EmojiPicker";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useChatUtility } from "@/hooks/useChatUtiliy";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useChatUtility } from "@/hooks/useChatUtility";
 
 export function ChatInput() {
   const [message, setMessage] = useState("");
@@ -51,11 +47,7 @@ export function ChatInput() {
               <Smile className="h-5 w-5 text-muted-foreground" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent
-            className="w-auto p-0 border-0"
-            side="top"
-            align="start"
-          >
+          <PopoverContent className="w-auto p-0 border-0" side="top" align="start">
             <EmojiPicker onEmojiSelect={handleEmojiSelect} />
           </PopoverContent>
         </Popover>
@@ -80,11 +72,7 @@ export function ChatInput() {
 
         {/* Send or voice button */}
         {message.trim() ? (
-          <Button
-            onClick={handleSend}
-            size="icon"
-            className="h-10 w-10 shrink-0 rounded-full"
-          >
+          <Button onClick={handleSend} size="icon" className="h-10 w-10 shrink-0 rounded-full">
             <Send className="h-5 w-5" />
           </Button>
         ) : (

@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { getSocket } from "@/socket/socket";
 
-import { useChatUtility } from "@/hooks/useChatUtiliy";
+import { useChatUtility } from "@/hooks/useChatUtility";
 import { useChatStore } from "@/store/chatStore";
 // import { useAuthStore } from "@/store/auth.store";
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { onSocketReceiveMessage, onSocketAckMessage, onSocketMessageFailed } = useChatUtility();
+  const { onSocketReceiveMessage, onSocketAckMessage, onSocketMessageFailed, onSocketReactionUpdate } =
+    useChatUtility();
   const { conversations } = useChatStore();
   // const { user, accessToken } = useAuthStore();
   useEffect(() => {
@@ -17,7 +18,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     socket.on("message:new", onSocketReceiveMessage);
     socket.on("message:ack", onSocketAckMessage);
     socket.on("message:error", onSocketMessageFailed);
-
+    socket.on("reaction:added", onSocketReactionUpdate);
+    socket.on("reaction:removed", onSocketReactionUpdate);
     socket.on("connect", () => {
       console.log("Socket connected.");
 
@@ -31,6 +33,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       socket.off("message:new", onSocketReceiveMessage);
       socket.off("message:ack", onSocketAckMessage);
       socket.off("message:error", onSocketMessageFailed);
+      socket.off("reaction:added", onSocketReactionUpdate);
+      socket.off("reaction:removed", onSocketReactionUpdate);
       socket.off("connect");
     };
   }, [conversations]);

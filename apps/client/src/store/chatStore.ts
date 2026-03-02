@@ -24,7 +24,7 @@ export interface Message {
   content: string;
   timestamp: string;
   status: "sent" | "delivered" | "read" | "failed";
-  reactions: Reaction[];
+  reactions: Record<string, string[]>;
   replyTo?: string;
   type: "text" | "system";
 }
@@ -79,8 +79,9 @@ interface ChatState {
   // receiveMessage: (message: Message) => void;
   // ackMessage: (data: { clientMessageId: string; message: Message }) => void;
   // markMessageFailed: (data: { clientMessageId: string }) => void;
-  // addReaction: (messageId: string, emoji: string) => void;
-  // removeReaction: (messageId: string, emoji: string) => void;
+  addReaction: (conversationId: string, messageId: string, emoji: string, userId: string) => void;
+  removeReaction: (conversationId: string, messageId: string, emoji: string, userId: string) => void;
+  applyReactionFromSocket: (conversationId: string, messageId: string, newReactions: Record<string, string[]>) => void;
   markAsRead: (conversationId: string) => void;
   // addMember: (conversationId: string, userId: string) => void;
   // removeMember: (conversationId: string, userId: string) => void;
@@ -136,18 +137,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   appendMessage: (message) =>
     set((state) => {
-      const convo = state.messagesByConversation[message.conversationId];
-      if (!convo) return state;
+      const conversation = state.messagesByConversation[message.conversationId];
+      if (!conversation) return state;
 
       // prevent duplicates
-      if (convo.messages.find((m) => m.id === message.id)) return state;
+      if (conversation.messages.find((m) => m.id === message.id)) return state;
 
       return {
         messagesByConversation: {
           ...state.messagesByConversation,
           [message.conversationId]: {
-            ...convo,
-            messages: [...convo.messages, message],
+            ...conversation,
+            messages: [...conversation.messages, message],
           },
         },
       };
@@ -226,33 +227,104 @@ export const useChatStore = create<ChatState>((set, get) => ({
   //   }));
   // },
 
-  // addReaction: (messageId, emoji) => {
-  //   set((state) => ({
-  //     messages: state.messages.map((msg) =>
-  //       msg.id === messageId
-  //         ? {
-  //             ...msg,
-  //             reactions: [...msg.reactions, { emoji, userId: "user-1" }],
-  //           }
-  //         : msg,
-  //     ),
-  //   }));
-  // },
 
-  // removeReaction: (messageId, emoji) => {
-  //   set((state) => ({
-  //     messages: state.messages.map((msg) =>
-  //       msg.id === messageId
-  //         ? {
-  //             ...msg,
-  //             reactions: msg.reactions.filter(
-  //               (r) => !(r.emoji === emoji && r.userId === "user-1"),
-  //             ),
-  //           }
-  //         : msg,
-  //     ),
-  //   }));
-  // },
+  addReaction: (conversationId, messageId, emoji, userId) => {
+    set((state) => {
+      const conversation = state.messagesByConversation[conversationId];
+      if (!conversation) return state;
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            ...conversation,
+            messages: conversation.messages.map((msg) => {
+              if (msg.id !== messageId) return msg;
+
+              const reactions = { ...msg.reactions };
+
+              if (!reactions[emoji]) {
+                reactions[emoji] = [];
+              }
+
+              if (!reactions[emoji].includes(userId)) {
+                reactions[emoji] = [...reactions[emoji], userId];
+              }
+
+              return { ...msg, reactions };
+            }),
+          },
+        },
+      };
+    });
+  },
+
+  removeReaction: (conversationId, messageId, emoji, userId) => {
+    set((state) => {
+      const conversation = state.messagesByConversation[conversationId];
+      if (!conversation) return state;
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            ...conversation,
+            messages: conversation.messages.map((msg) => {
+              if (msg.id !== messageId) return msg;
+
+              const reactions = { ...msg.reactions };
+
+              if (!reactions[emoji]) return msg;
+
+              reactions[emoji] = reactions[emoji].filter(
+                (id) => id !== userId
+              );
+
+              if (reactions[emoji].length === 0) {
+                delete reactions[emoji];
+              }
+
+              return { ...msg, reactions };
+            }),
+          },
+        },
+      };
+    });
+  },
+
+  applyReactionFromSocket: (
+    conversationId: string,
+    messageId: string,
+    newReactions: Record<string, string[]>
+  ) => {
+    set((state) => {
+      const conversation =
+        state.messagesByConversation[conversationId];
+      if (!conversation) return state;
+
+      const messageIndex = conversation.messages.findIndex(
+        (m) => m.id === messageId
+      );
+      if (messageIndex === -1) return state;
+
+      // Create updated messages array
+      const updatedMessages = [...conversation.messages];
+      updatedMessages[messageIndex] = {
+        ...updatedMessages[messageIndex],
+        reactions: newReactions,
+      };
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            ...conversation,
+            messages: updatedMessages,
+          },
+        },
+      };
+    });
+  },
 
   markAsRead: (conversationId) => {
     set((state) => ({
