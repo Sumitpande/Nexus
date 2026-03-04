@@ -100,7 +100,6 @@ export const useChatUtility = () => {
     action: "add" | "remove";
   }) => {
 
-    // TODO: Not able to update reaction via socket for new messages
     const {
       conversationId,
       messageId,
@@ -109,8 +108,7 @@ export const useChatUtility = () => {
       action
     } = payload;
 
-    const conversation =
-      messagesByConversation[conversationId];
+    const conversation = useChatStore.getState().messagesByConversation[conversationId];
     if (!conversation) return;
 
     const message = conversation.messages.find(
