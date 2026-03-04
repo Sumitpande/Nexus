@@ -17,6 +17,13 @@ export interface Reaction {
   userId: string;
 }
 
+export interface ReplyTo {
+  id: string;
+  content: string;
+  senderId: string;
+}
+
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -25,7 +32,7 @@ export interface Message {
   timestamp: string;
   status: "sent" | "delivered" | "read" | "failed";
   reactions: Record<string, string[]>;
-  replyTo?: string;
+  replyTo?: ReplyTo;
   type: "text" | "system";
 }
 
@@ -70,8 +77,9 @@ interface ChatState {
   profilePanelOpen: boolean;
   typingUsers: { conversationId: string; userId: string }[];
   messagesByConversation: Record<string, ConversationMessages>;
-
+  replyingTo: Message | null;
   // Actions
+  setReplyingTo: (message: Message | null) => void;
   setConversations: (conversations: Conversation[]) => void;
   setActiveConversation: (id: string | null) => void;
   toggleProfilePanel: () => void;
@@ -104,8 +112,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   profilePanelOpen: false,
   typingUsers: [],
   messagesByConversation: {},
+  replyingTo: null,
 
   // Actions
+  setReplyingTo: (message) =>
+    set({
+      replyingTo: message,
+    }),
   setInitialMessages: (conversationId, messages) => {
     set((state) => ({
       messagesByConversation: {

@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
-import { Check, CheckCheck, Smile } from "lucide-react";
+import { Check, CheckCheck, ChevronDown, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { type Message } from "@/store/chatStore";
+import { useChatStore, type Message } from "@/store/chatStore";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuthStore } from "@/store/auth.store";
 import type { Conversation } from "../types";
 import { formatMessageDate } from "@/utils";
 import { useChatUtility } from "@/hooks/useChatUtility";
+import { DropdownMenu } from "@radix-ui/react-dropdown-menu";
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 
 interface MessageBubbleProps {
   message: Message;
@@ -34,6 +36,7 @@ export function MessageBubble({ message, isGroupChat, activeConversation, showSe
   const { user } = useAuthStore();
   const [showReactions, setShowReactions] = useState(false);
   const { toggleReaction } = useChatUtility();
+  const { setReplyingTo } = useChatStore.getState();
   const sender = activeConversation.participants.find((u) => u.id === message.senderId);
   const isOwnMessage = message.senderId === user?.id;
   const isSystemMessage = message.type === "system";
@@ -71,7 +74,13 @@ export function MessageBubble({ message, isGroupChat, activeConversation, showSe
     );
   }
   return (
-    <div className={cn("group flex gap-2 px-4 py-1", isOwnMessage ? "flex-row-reverse" : "flex-row")}>
+    <div
+      className={cn(
+        "group flex gap-2 px-4 py-1",
+        isOwnMessage ? "flex-row-reverse" : "flex-row",
+        message.reactions && Object.keys(message.reactions).length > 0 ? "mb-2" : "",
+      )}
+    >
       {/* Avatar for group chats */}
       {isGroupChat && !isOwnMessage && showSenderInfo && (
         <Avatar className="h-8 w-8 shrink-0 mt-5">
@@ -98,6 +107,20 @@ export function MessageBubble({ message, isGroupChat, activeConversation, showSe
                 : "bg-muted text-foreground rounded-bl-md",
             )}
           >
+            {message.replyTo && (
+              <div
+                className={cn(
+                  "mb-2 rounded-md px-3 py-2 text-xs border-l-4 backdrop-blur-sm border-l-blue-500",
+                  isOwnMessage ? "bg-muted/10  text-primary-foreground" : "bg-muted/60  text-foreground",
+                )}
+              >
+                <div className="font-semibold truncate opacity-90">
+                  {participantMap[message.replyTo.senderId] ?? "Unknown"}
+                </div>
+
+                <div className="truncate opacity-75">{message.replyTo.content}</div>
+              </div>
+            )}
             <p className="text-sm whitespace-pre-wrap wrap-break-words">{message.content}</p>
 
             {/* Timestamp and status */}
@@ -115,6 +138,25 @@ export function MessageBubble({ message, isGroupChat, activeConversation, showSe
             </div>
           </div>
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity",
+                  "h-7 w-7 rounded-full bg-card border border-border shadow-sm flex items-center justify-center hover:bg-muted",
+                  isOwnMessage ? "-left-18" : "-right-18",
+                )}
+              >
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setReplyingTo(message)}>Reply</DropdownMenuItem>
+              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {/* Reaction button */}
           <Popover open={showReactions} onOpenChange={setShowReactions}>
             <PopoverTrigger asChild>

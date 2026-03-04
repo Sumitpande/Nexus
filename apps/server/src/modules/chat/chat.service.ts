@@ -376,8 +376,24 @@ export async function createMessage(
     `,
     [conversationId, senderId, content, replyTo, type],
   );
+  const messageId = result.rows[0].id;
+  // Fetch full message with joins
+  const fullMessage = await pool.query(
+    `
+    SELECT 
+      m.*,
+      r.id AS reply_id,
+      r.content AS reply_content,
+      r.sender_id AS reply_sender
+    FROM messages m
+    LEFT JOIN messages r ON m.reply_to = r.id
+    WHERE m.id = $1
+    `,
+    [messageId],
+  );
 
-  return mapMessages(result.rows)[0];
+
+  return mapMessages(fullMessage.rows)[0];
 }
 
 async function validateReply(conversationId: string, replyTo: string) {
