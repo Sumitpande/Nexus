@@ -90,8 +90,20 @@ export async function addReactionHandler(req: Request, res: Response) {
   // @ts-ignore
   const userId = req.userId!;
 
-  await addReaction(messageId, userId, emoji);
+  const reaction = await addReaction(messageId, userId, emoji);
+  if (!reaction) {
+    return res.sendStatus(200);
+  }
 
+  const io = getIO();
+
+  io.to(reaction.conversation_id).emit("reaction:added", {
+    conversationId: reaction.conversation_id,
+    messageId: reaction.message_id,
+    emoji: reaction.emoji,
+    userId: reaction.user_id,
+    action: "add"
+  });
   return res.sendStatus(200);
 }
 
@@ -105,7 +117,20 @@ export async function removeReactionHandler(req: Request, res: Response) {
   // @ts-ignore
   const userId = req.userId!;
 
-  await removeReaction(messageId, userId, emoji);
+  const reaction = await removeReaction(messageId, userId, emoji);
+  if (!reaction) {
+    return res.sendStatus(200);
+  }
+
+  const io = getIO();
+
+  io.to(reaction.conversation_id).emit("reaction:removed", {
+    conversationId: reaction.conversation_id,
+    messageId: reaction.message_id,
+    emoji: reaction.emoji,
+    userId: reaction.user_id,
+    action: "remove"
+  });
 
   return res.sendStatus(200);
 }

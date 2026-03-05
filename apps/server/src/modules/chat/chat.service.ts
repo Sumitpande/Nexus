@@ -376,8 +376,24 @@ export async function createMessage(
     `,
     [conversationId, senderId, content, replyTo, type],
   );
+  const messageId = result.rows[0].id;
+  // Fetch full message with joins
+  const fullMessage = await pool.query(
+    `
+    SELECT 
+      m.*,
+      r.id AS reply_id,
+      r.content AS reply_content,
+      r.sender_id AS reply_sender
+    FROM messages m
+    LEFT JOIN messages r ON m.reply_to = r.id
+    WHERE m.id = $1
+    `,
+    [messageId],
+  );
 
-  return result.rows[0];
+
+  return mapMessages(fullMessage.rows)[0];
 }
 
 async function validateReply(conversationId: string, replyTo: string) {
@@ -399,27 +415,57 @@ export async function addReaction(
   userId: string,
   emoji: string,
 ) {
-  await pool.query(
+  const result = await pool.query(
     `
-    INSERT INTO message_reactions (message_id, user_id, emoji)
-    VALUES ($1, $2, $3)
-    ON CONFLICT DO NOTHING
+    WITH inserted AS (
+      INSERT INTO message_reactions (message_id, user_id, emoji)
+      VALUES ($1, $2, $3)
+      ON CONFLICT DO NOTHING
+      RETURNING message_id, user_id, emoji
+    )
+    SELECT 
+      m.conversation_id,
+      i.message_id,
+      i.user_id,
+      i.emoji
+    FROM inserted i
+    JOIN messages m ON m.id = i.message_id
     `,
     [messageId, userId, emoji],
   );
+
+  return result.rows[0]; // may be undefined if conflict
 }
+
 export async function removeReaction(
   messageId: string,
   userId: string,
   emoji: string,
 ) {
-  await pool.query(
+  const result = await pool.query(
     `
     DELETE FROM message_reactions
-    WHERE message_id = $1 AND user_id = $2 AND emoji = $3
+    WHERE message_id = $1
+      AND user_id = $2
+      AND emoji = $3
+    RETURNING message_id, user_id, emoji
     `,
     [messageId, userId, emoji],
   );
+
+  if (result.rowCount === 0) return null;
+
+  const conversation = await pool.query(
+    `SELECT conversation_id FROM messages WHERE id = $1`,
+    [messageId],
+  );
+
+  return {
+    conversation_id: conversation.rows[0].conversation_id,
+    message_id: messageId,
+    user_id: userId,
+    emoji,
+  };
 }
 
 export async function getMessages(
@@ -500,20 +546,17 @@ function mapMessages(rows: any[]) {
         type: row.type,
         replyTo: row.reply_id
           ? {
-              id: row.reply_id,
-              content: row.reply_content,
-              senderId: row.reply_sender,
-            }
+            id: row.reply_id,
+            content: row.reply_content,
+            senderId: row.reply_sender,
+          }
           : null,
-        reactions: [],
+        reactions: {},
       });
     }
 
-    if (row.emoji) {
-      map.get(row.id).reactions.push({
-        emoji: row.emoji,
-        userIds: row.user_ids,
-      });
+    if (row.emoji && row.user_ids) {
+      map.get(row.id).reactions[row.emoji] = row.user_ids
     }
   }
 

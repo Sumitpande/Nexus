@@ -17,6 +17,13 @@ export interface Reaction {
   userId: string;
 }
 
+export interface ReplyTo {
+  id: string;
+  content: string;
+  senderId: string;
+}
+
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -24,8 +31,8 @@ export interface Message {
   content: string;
   timestamp: string;
   status: "sent" | "delivered" | "read" | "failed";
-  reactions: Reaction[];
-  replyTo?: string;
+  reactions: Record<string, string[]>;
+  replyTo?: ReplyTo;
   type: "text" | "system";
 }
 
@@ -62,7 +69,7 @@ type ConversationMessages = {
 };
 
 interface ChatState {
-  currentUser: User;
+  currentUser: User | null;
   users: User[];
   conversations: Conversation[];
   messages: Message[];
@@ -70,8 +77,9 @@ interface ChatState {
   profilePanelOpen: boolean;
   typingUsers: { conversationId: string; userId: string }[];
   messagesByConversation: Record<string, ConversationMessages>;
-
+  replyingTo: Message | null;
   // Actions
+  setReplyingTo: (message: Message | null) => void;
   setConversations: (conversations: Conversation[]) => void;
   setActiveConversation: (id: string | null) => void;
   toggleProfilePanel: () => void;
@@ -79,8 +87,9 @@ interface ChatState {
   // receiveMessage: (message: Message) => void;
   // ackMessage: (data: { clientMessageId: string; message: Message }) => void;
   // markMessageFailed: (data: { clientMessageId: string }) => void;
-  // addReaction: (messageId: string, emoji: string) => void;
-  // removeReaction: (messageId: string, emoji: string) => void;
+  addReaction: (conversationId: string, messageId: string, emoji: string, userId: string) => void;
+  removeReaction: (conversationId: string, messageId: string, emoji: string, userId: string) => void;
+  applyReactionFromSocket: (conversationId: string, messageId: string, newReactions: Record<string, string[]>) => void;
   markAsRead: (conversationId: string) => void;
   // addMember: (conversationId: string, userId: string) => void;
   // removeMember: (conversationId: string, userId: string) => void;
@@ -93,364 +102,23 @@ interface ChatState {
   appendMessage: (message: Message) => void;
 }
 
-// Mock users
-const mockUsers: User[] = [
-  {
-    id: "user-1",
-    name: "You",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-    status: "online",
-    phone: "+1 234 567 8900",
-    about: "Available",
-  },
-  {
-    id: "user-2",
-    name: "Sarah Johnson",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    status: "online",
-    phone: "+1 234 567 8901",
-    about: "Hey there! I am using WhatsApp",
-  },
-  {
-    id: "user-3",
-    name: "Mike Chen",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    status: "offline",
-    lastSeen: "2 hours ago",
-    phone: "+1 234 567 8902",
-    about: "Busy",
-  },
-  {
-    id: "user-4",
-    name: "Emily Davis",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
-    status: "online",
-    phone: "+1 234 567 8903",
-    about: "At work",
-  },
-  {
-    id: "user-5",
-    name: "Alex Turner",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-    status: "away",
-    lastSeen: "30 minutes ago",
-    phone: "+1 234 567 8904",
-    about: "In a meeting",
-  },
-  {
-    id: "user-6",
-    name: "Jessica Lee",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica",
-    status: "online",
-    phone: "+1 234 567 8905",
-    about: "Coffee lover ☕",
-  },
-  {
-    id: "user-7",
-    name: "David Wilson",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
-    status: "offline",
-    lastSeen: "1 day ago",
-    phone: "+1 234 567 8906",
-    about: "Traveling 🌍",
-  },
-];
-
-// Mock conversations
-// const mockConversations: Conversation[] = [
-//   {
-//     id: "conv-1",
-//     type: "direct",
-//     participants: [
-//       { userId: "user-1", role: "member", joinedAt: "" },
-//       { userId: "user-2", role: "member", joinedAt: "" },
-//     ],
-//     lastMessage: "Sure, let me check that for you!",
-//     lastMessageTime: "10:30 AM",
-//     unreadCount: 2,
-//     isPinned: true,
-//     isMuted: false,
-//   },
-//   {
-//     id: "conv-2",
-//     type: "group",
-//     participants: [
-//       { userId: "user-1", role: "creator", joinedAt: "2024-01-01" },
-//       { userId: "user-2", role: "admin", joinedAt: "2024-01-01" },
-//       { userId: "user-3", role: "member", joinedAt: "2024-01-02" },
-//       { userId: "user-4", role: "member", joinedAt: "2024-01-02" },
-//       { userId: "user-5", role: "member", joinedAt: "2024-01-03" },
-//     ],
-//     groupInfo: {
-//       name: "Project Team",
-//       avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=ProjectTeam",
-//       description: "Team collaboration for Q1 project deliverables",
-//       createdBy: "user-1",
-//       createdAt: "2024-01-01",
-//     },
-//     lastMessage: "Emily: The designs look great!",
-//     lastMessageTime: "9:45 AM",
-//     unreadCount: 5,
-//     isPinned: true,
-//     isMuted: false,
-//   },
-//   {
-//     id: "conv-3",
-//     type: "direct",
-//     participants: [
-//       { userId: "user-1", role: "member", joinedAt: "" },
-//       { userId: "user-3", role: "member", joinedAt: "" },
-//     ],
-//     lastMessage: "Thanks for the update!",
-//     lastMessageTime: "Yesterday",
-//     unreadCount: 0,
-//     isPinned: false,
-//     isMuted: false,
-//   },
-//   {
-//     id: "conv-4",
-//     type: "group",
-//     participants: [
-//       { userId: "user-1", role: "member", joinedAt: "2024-02-01" },
-//       { userId: "user-6", role: "creator", joinedAt: "2024-02-01" },
-//       { userId: "user-7", role: "admin", joinedAt: "2024-02-01" },
-//       { userId: "user-2", role: "member", joinedAt: "2024-02-02" },
-//     ],
-//     groupInfo: {
-//       name: "Weekend Hangout",
-//       avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Weekend",
-//       description: "Planning weekend activities 🎉",
-//       createdBy: "user-6",
-//       createdAt: "2024-02-01",
-//     },
-//     lastMessage: "David: Who's in for Saturday?",
-//     lastMessageTime: "Monday",
-//     unreadCount: 0,
-//     isPinned: false,
-//     isMuted: true,
-//   },
-//   {
-//     id: "conv-5",
-//     type: "direct",
-//     participants: [
-//       { userId: "user-1", role: "member", joinedAt: "" },
-//       { userId: "user-4", role: "member", joinedAt: "" },
-//     ],
-//     lastMessage: "See you tomorrow!",
-//     lastMessageTime: "Tuesday",
-//     unreadCount: 0,
-//     isPinned: false,
-//     isMuted: false,
-//   },
-// ];
-
-// Mock messages
-const mockMessages: Message[] = [
-  // Direct conversation with Sarah
-  {
-    id: "msg-1",
-    conversationId: "conv-1",
-    senderId: "user-2",
-    content: "Hey! How are you doing?",
-    timestamp: "10:00 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-2",
-    conversationId: "conv-1",
-    senderId: "user-1",
-    content: "I'm good! Just finished the morning meeting. How about you?",
-    timestamp: "10:05 AM",
-    status: "read",
-    reactions: [{ emoji: "👍", userId: "user-2" }],
-    type: "text",
-  },
-  {
-    id: "msg-3",
-    conversationId: "conv-1",
-    senderId: "user-2",
-    content:
-      "Great! I wanted to ask about the project timeline. Do you have a moment?",
-    timestamp: "10:15 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-4",
-    conversationId: "conv-1",
-    senderId: "user-1",
-    content: "Of course! What do you need to know?",
-    timestamp: "10:20 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-5",
-    conversationId: "conv-1",
-    senderId: "user-2",
-    content: "When is the deadline for the first milestone?",
-    timestamp: "10:25 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-6",
-    conversationId: "conv-1",
-    senderId: "user-2",
-    content: "Sure, let me check that for you!",
-    timestamp: "10:30 AM",
-    status: "delivered",
-    reactions: [],
-    type: "text",
-  },
-
-  // Group conversation - Project Team
-  {
-    id: "msg-7",
-    conversationId: "conv-2",
-    senderId: "user-1",
-    content: "Good morning team! 👋",
-    timestamp: "9:00 AM",
-    status: "read",
-    reactions: [
-      { emoji: "👋", userId: "user-2" },
-      { emoji: "👋", userId: "user-3" },
-    ],
-    type: "text",
-  },
-  {
-    id: "msg-8",
-    conversationId: "conv-2",
-    senderId: "user-2",
-    content: "Morning! Ready for today's standup?",
-    timestamp: "9:05 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-9",
-    conversationId: "conv-2",
-    senderId: "user-3",
-    content: "Yes! I've completed the backend API endpoints.",
-    timestamp: "9:10 AM",
-    status: "read",
-    reactions: [
-      { emoji: "🎉", userId: "user-1" },
-      { emoji: "👏", userId: "user-4" },
-    ],
-    type: "text",
-  },
-  {
-    id: "msg-10",
-    conversationId: "conv-2",
-    senderId: "user-1",
-    content: "Awesome work Mike! Can you share the documentation?",
-    timestamp: "9:15 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-11",
-    conversationId: "conv-2",
-    senderId: "user-3",
-    content: "Will do! Sending it over now.",
-    timestamp: "9:20 AM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-12",
-    conversationId: "conv-2",
-    senderId: "system",
-    content: "Alex joined the group",
-    timestamp: "9:30 AM",
-    status: "read",
-    reactions: [],
-    type: "system",
-  },
-  {
-    id: "msg-13",
-    conversationId: "conv-2",
-    senderId: "user-5",
-    content: "Hey everyone! Excited to join the team!",
-    timestamp: "9:35 AM",
-    status: "read",
-    reactions: [{ emoji: "❤️", userId: "user-2" }],
-    type: "text",
-  },
-  {
-    id: "msg-14",
-    conversationId: "conv-2",
-    senderId: "user-4",
-    content: "The designs look great!",
-    timestamp: "9:45 AM",
-    status: "delivered",
-    reactions: [],
-    type: "text",
-  },
-
-  // Direct conversation with Mike
-  {
-    id: "msg-15",
-    conversationId: "conv-3",
-    senderId: "user-3",
-    content: "Hey, quick question about the API",
-    timestamp: "Yesterday 3:00 PM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-16",
-    conversationId: "conv-3",
-    senderId: "user-1",
-    content: "Sure, what's up?",
-    timestamp: "Yesterday 3:05 PM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-17",
-    conversationId: "conv-3",
-    senderId: "user-3",
-    content: "I've pushed the changes to the repo",
-    timestamp: "Yesterday 3:30 PM",
-    status: "read",
-    reactions: [],
-    type: "text",
-  },
-  {
-    id: "msg-18",
-    conversationId: "conv-3",
-    senderId: "user-1",
-    content: "Thanks for the update!",
-    timestamp: "Yesterday 3:35 PM",
-    status: "read",
-    reactions: [{ emoji: "👍", userId: "user-3" }],
-    type: "text",
-  },
-];
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  currentUser: mockUsers[0],
-  users: mockUsers,
+  currentUser: null,
+  users: [],
   conversations: [],
-  messages: mockMessages,
+  messages: [],
   activeConversationId: null,
   profilePanelOpen: false,
   typingUsers: [],
   messagesByConversation: {},
+  replyingTo: null,
 
   // Actions
+  setReplyingTo: (message) =>
+    set({
+      replyingTo: message,
+    }),
   setInitialMessages: (conversationId, messages) => {
     set((state) => ({
       messagesByConversation: {
@@ -482,18 +150,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   appendMessage: (message) =>
     set((state) => {
-      const convo = state.messagesByConversation[message.conversationId];
-      if (!convo) return state;
+      const conversation = state.messagesByConversation[message.conversationId];
+      if (!conversation) return state;
 
       // prevent duplicates
-      if (convo.messages.find((m) => m.id === message.id)) return state;
+      if (conversation.messages.find((m) => m.id === message.id)) return state;
 
       return {
         messagesByConversation: {
           ...state.messagesByConversation,
           [message.conversationId]: {
-            ...convo,
-            messages: [...convo.messages, message],
+            ...conversation,
+            messages: [...conversation.messages, message],
           },
         },
       };
@@ -572,33 +240,104 @@ export const useChatStore = create<ChatState>((set, get) => ({
   //   }));
   // },
 
-  // addReaction: (messageId, emoji) => {
-  //   set((state) => ({
-  //     messages: state.messages.map((msg) =>
-  //       msg.id === messageId
-  //         ? {
-  //             ...msg,
-  //             reactions: [...msg.reactions, { emoji, userId: "user-1" }],
-  //           }
-  //         : msg,
-  //     ),
-  //   }));
-  // },
 
-  // removeReaction: (messageId, emoji) => {
-  //   set((state) => ({
-  //     messages: state.messages.map((msg) =>
-  //       msg.id === messageId
-  //         ? {
-  //             ...msg,
-  //             reactions: msg.reactions.filter(
-  //               (r) => !(r.emoji === emoji && r.userId === "user-1"),
-  //             ),
-  //           }
-  //         : msg,
-  //     ),
-  //   }));
-  // },
+  addReaction: (conversationId, messageId, emoji, userId) => {
+    set((state) => {
+      const conversation = state.messagesByConversation[conversationId];
+      if (!conversation) return state;
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            ...conversation,
+            messages: conversation.messages.map((msg) => {
+              if (msg.id !== messageId) return msg;
+
+              const reactions = { ...msg.reactions };
+
+              if (!reactions[emoji]) {
+                reactions[emoji] = [];
+              }
+
+              if (!reactions[emoji].includes(userId)) {
+                reactions[emoji] = [...reactions[emoji], userId];
+              }
+
+              return { ...msg, reactions };
+            }),
+          },
+        },
+      };
+    });
+  },
+
+  removeReaction: (conversationId, messageId, emoji, userId) => {
+    set((state) => {
+      const conversation = state.messagesByConversation[conversationId];
+      if (!conversation) return state;
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            ...conversation,
+            messages: conversation.messages.map((msg) => {
+              if (msg.id !== messageId) return msg;
+
+              const reactions = { ...msg.reactions };
+
+              if (!reactions[emoji]) return msg;
+
+              reactions[emoji] = reactions[emoji].filter(
+                (id) => id !== userId
+              );
+
+              if (reactions[emoji].length === 0) {
+                delete reactions[emoji];
+              }
+
+              return { ...msg, reactions };
+            }),
+          },
+        },
+      };
+    });
+  },
+
+  applyReactionFromSocket: (
+    conversationId: string,
+    messageId: string,
+    newReactions: Record<string, string[]>
+  ) => {
+    set((state) => {
+      const conversation =
+        state.messagesByConversation[conversationId];
+      if (!conversation) return state;
+
+      const messageIndex = conversation.messages.findIndex(
+        (m) => m.id === messageId
+      );
+      if (messageIndex === -1) return state;
+
+      // Create updated messages array
+      const updatedMessages = [...conversation.messages];
+      updatedMessages[messageIndex] = {
+        ...updatedMessages[messageIndex],
+        reactions: newReactions,
+      };
+
+      return {
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: {
+            ...conversation,
+            messages: updatedMessages,
+          },
+        },
+      };
+    });
+  },
 
   markAsRead: (conversationId) => {
     set((state) => ({

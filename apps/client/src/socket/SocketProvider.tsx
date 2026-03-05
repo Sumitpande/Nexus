@@ -14,12 +14,19 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       connectSocket();
     } else {
       disconnectSocket();
+      console.log("disconnecting...");
     }
 
+    return () => {};
+  }, [isAuthenticated, initialized]);
+
+  // Cleanup only on unmount
+  useEffect(() => {
     return () => {
       disconnectSocket();
+      console.log("disconnecting (unmount)...");
     };
-  }, [isAuthenticated, initialized]);
+  }, []);
 
   return <>{children}</>;
 }
