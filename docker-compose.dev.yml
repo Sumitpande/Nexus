@@ -19,7 +19,7 @@ services:
       POSTGRES_USER: nexus_user
       POSTGRES_PASSWORD: nexus_password
     volumes:
-      - ./apps/server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./packages/db/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - postgres_dev_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
@@ -30,17 +30,17 @@ services:
     ports:
       - "6379:6379"
 
-  server:
+  api:
     build:
-      context: ./apps/server
-      dockerfile: Dockerfile.dev
-    container_name: nexus-server-dev
-    command: npm run dev
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: nexus-api-dev
+    command: npm run dev -w @nexus/api
     env_file:
-      - ./apps/server/.env.dev
+      - ./apps/api/.env.dev
     volumes:
-      - ./apps/server:/app
-      - /app/node_modules
+      - .:/app
+      - nexus_node_modules:/app/node_modules
     depends_on:
       - postgres
       - redis
@@ -64,3 +64,4 @@ services:
 
 volumes:
   postgres_dev_data:
+  nexus_node_modules:
