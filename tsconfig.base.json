@@ -12,9 +12,11 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "sourceMap": true,
+    "baseUrl": ".",
     "paths": {
       "@nexus/db": ["./packages/db/src"],
-      "@nexus/redis": ["./packages/redis/src"]
+      "@nexus/redis": ["./packages/redis/src"],
+      "@nexus/errors": ["./packages/errors/src"]
     }
   },
   "exclude": ["**/node_modules", "**/dist"]

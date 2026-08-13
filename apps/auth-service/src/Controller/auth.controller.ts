@@ -3,20 +3,20 @@ import { NextFunction, Request, Response } from "express";
 import {
   handleLogin,
   handleSignup,
-} from "./auth.service";
+} from "../service/auth.service";
 
 import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
-} from "./auth.tokens";
+} from "../auth.tokens";
 import {
   addRefreshToken,
   revokeAllRefreshTokens,
   verifyAndRemoveRefreshToken,
-} from "./refreshStore";
+} from "../refreshStore";
 import { BadRequestError, UnauthorizedError } from "@nexus/errors";
-import { getUserById } from "./auth.repository";
+import { getUserById } from "../repository/auth.repository";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const IsProd = process.env.NODE_ENV === "production";

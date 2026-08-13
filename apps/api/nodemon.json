@@ -2,6 +2,6 @@
   "watch": ["src"],
   "ext": "ts,json",
   "ignore": ["dist", "node_modules"],
-  "exec": "ts-node ./src/index.ts",
+  "exec": "ts-node --require tsconfig-paths/register ./src/index.ts",
   "legacyWatch": true
 }

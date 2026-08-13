@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { authLimiter } from "../../common/middleware";
-import { login, logout, refresh, revokeAll, signup } from "./auth.controller";
-import { requireAuth } from "./auth.middleware";
+import { authLimiter } from "../middleware/auth.middleware";
+import { login, logout, refresh, revokeAll, signup } from "../Controller/auth.controller";
+import { requireAuth } from "../middleware/auth.middleware";
 
 const router = Router();
+router.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 router.post("/login", authLimiter, login);
 

@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
 
+
+
+import { randomUUID } from 'crypto'
 export function authenticate(req: Request, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Unauthorized" });
@@ -29,3 +33,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.sendStatus(401);
   }
 }
+
+
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many auth requests.",
+});

@@ -1,4 +1,11 @@
 {
   "files": [],
-  "references": [{ "path": "./packages/db" }, { "path": "./packages/redis" }, { "path": "./apps/api" }]
+  "references": [
+    { "path": "./apps/auth-service" },
+    { "path": "./packages/db" },
+    { "path": "./packages/errors" },
+    { "path": "./packages/redis" },
+    { "path": "./packages/logger" },
+    { "path": "./apps/api" }
+  ]
 }

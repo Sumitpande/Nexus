@@ -1,4 +1,4 @@
-import { verifyAccessToken } from "../modules/auth/auth.tokens";
+import { verifyAccessToken } from "../../../auth-service/src/auth.tokens";
 
 export function socketAuthMiddleware(socket: any, next: any) {
   try {

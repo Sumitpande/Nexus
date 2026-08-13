@@ -9,7 +9,9 @@
     "dev": "docker compose -f docker-compose.dev.yml up",
     "dev:build": "docker compose -f docker-compose.dev.yml up --build",
     "down": "docker compose -f docker-compose.dev.yml down",
-    "dev:api": "npm run dev -w apps/api",
+    "dev:auth": "npm --workspace=apps/auth-service run dev",
+    "dev:api": "npm --workspace=apps/api run dev",
+    "dev:web": "npm --workspace=apps/web run dev",
     "build": "tsc -b",
     "build:packages": "npm run build --workspaces --if-present",
     "typecheck": "tsc --noEmit",
@@ -22,6 +24,7 @@
     "eslint": "^9.39.3",
     "prettier": "^3.8.1",
     "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   }
 }

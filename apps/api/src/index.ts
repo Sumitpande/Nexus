@@ -16,10 +16,10 @@ async function bootstrap() {
     initSocket(server, redisClient);
 
     server.listen(PORT, () => {
-      console.log(`➡️  Server running on port ${PORT}`);
+      console.log(`➡️  API Gateway running on port ${PORT}`);
     });
   } catch (err) {
-    console.error("❌  Server startup failed", err);
+    console.error("❌  API Gateway startup failed", err);
     process.exit(1);
   }
 }

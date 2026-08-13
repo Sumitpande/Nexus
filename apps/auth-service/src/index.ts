@@ -1,0 +1,25 @@
+import http from "http";
+import app from "./app";
+
+
+
+const PORT = process.env.PORT || 4001;
+
+async function bootstrap() {
+    try {
+
+
+        const server = http.createServer(app);
+
+
+
+        server.listen(PORT, () => {
+            console.log(`➡️  Auth Server running on port ${PORT}`);
+        });
+    } catch (err) {
+        console.error("❌  Auth Server startup failed", err);
+        process.exit(1);
+    }
+}
+
+bootstrap();

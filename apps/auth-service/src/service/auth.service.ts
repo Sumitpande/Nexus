@@ -1,6 +1,6 @@
-import { createUser, findUserByEmail, setLastLogin } from "./auth.repository";
-import { comparePassword, generateAccessToken, generateRefreshToken, hashPassword } from "./auth.tokens";
-import { storeRefreshToken } from "./refreshStore";
+import { createUser, findUserByEmail, setLastLogin } from "../repository/auth.repository";
+import { comparePassword, generateAccessToken, generateRefreshToken, hashPassword } from "../auth.tokens";
+import { storeRefreshToken } from "../refreshStore";
 import { ConflictError, UnauthorizedError } from "@nexus/errors";
 import { ForbiddenError } from "@nexus/errors";
 
