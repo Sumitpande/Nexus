@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { searchUsers } from "./user.controller";
-import { requireAuth } from "../../../../auth-service/src/middleware/auth.middleware";
+import { requireAuth } from "../../common/middleware";
 
 const userRouter = Router();
 

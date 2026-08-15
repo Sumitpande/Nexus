@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authLimiter } from "../middleware/auth.middleware";
 import { login, logout, refresh, revokeAll, signup } from "../Controller/auth.controller";
 import { requireAuth } from "../middleware/auth.middleware";
+import { verifyToken } from "../Controller/verify.controller";
 
 const router = Router();
 router.get("/health", (_req, res) => res.json({ status: "ok" }));
@@ -17,5 +18,8 @@ router.post("/logout", logout);
 
 // revoke all sessions for current user (protected)
 router.post("/revoke", requireAuth, revokeAll);
+
+// Token verification endpoint for inter-service communication
+router.post("/verify", verifyToken);
 
 export default router;

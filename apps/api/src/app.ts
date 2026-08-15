@@ -11,7 +11,7 @@ app.use(requestId)
 app.use(helmet());
 app.use(
   cors({
-    origin: ["http://localhost:5173"], // add your frontend origin
+    origin: ["http://localhost:5173", "http://localhost"], // frontend + gateway
     credentials: true, // important for cookies
   })
 );

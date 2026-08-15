@@ -7,7 +7,7 @@ import {
   removeReactionHandler,
   sendMessageHandler,
 } from "./chat.controller";
-import { requireAuth } from "../../../../auth-service/src/middleware/auth.middleware";
+import { requireAuth } from "../../common/middleware";
 
 const chatRouter = Router();
 

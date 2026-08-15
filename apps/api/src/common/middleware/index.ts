@@ -3,6 +3,7 @@ import { BaseError } from '@nexus/errors'
 import { Request, Response, NextFunction } from 'express'
 
 import { randomUUID } from 'crypto'
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -14,8 +15,6 @@ export const messageLimiter = rateLimit({
   max: 60,
   message: "Too many messages.",
 });
-
-
 
 interface ErrorResponse {
   message: string
@@ -58,3 +57,6 @@ export const errorHandler = (
     requestId: req.id ?? null
   })
 }
+
+// Export auth middleware
+export { requireAuth } from './auth.middleware';
