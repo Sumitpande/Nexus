@@ -10,6 +10,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/redis/package.json ./packages/redis/
 COPY packages/errors/package.json ./packages/errors/
+COPY packages/auth-client/package.json ./packages/auth-client/
 
 # Install dependencies for all workspaces
 RUN npm install
@@ -19,6 +20,7 @@ COPY . .
 RUN npm run build -w @nexus/db
 RUN npm run build -w @nexus/redis
 RUN npm run build -w @nexus/errors
+RUN npm run build -w @nexus/auth-client
 EXPOSE 4000
 
 CMD ["npm", "run", "dev", "-w", "@nexus/api"]

@@ -1,8 +1,8 @@
 import http from "http";
 import app from "./app";
 import { initSocket } from "./sockets";
-import { connectPostgres } from "@nexus/db"
-import { connectRedis } from "@nexus/redis"
+import { connectPostgres } from "@nexus/db";
+import { connectRedis } from "@nexus/redis";
 
 const PORT = process.env.PORT || 4000;
 

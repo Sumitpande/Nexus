@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@nexus/auth-client": "*",
     "@nexus/db": "*",
     "@nexus/errors": "*",
     "@nexus/redis": "*",

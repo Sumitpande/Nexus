@@ -1,0 +1,22 @@
+{
+  "name": "@nexus/auth-client",
+  "version": "1.0.0",
+  "description": "Shared auth-service HTTP client and middleware for Nexus services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.5"
+  }
+}
