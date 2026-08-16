@@ -17,7 +17,8 @@
       "@nexus/db": ["./packages/db/src"],
       "@nexus/redis": ["./packages/redis/src"],
       "@nexus/errors": ["./packages/errors/src"],
-      "@nexus/auth-client": ["./packages/auth-client/src"]
+      "@nexus/auth-client": ["./packages/auth-client/src"],
+      "@nexus/kafka": ["./packages/kafka/src"]
     }
   },
   "exclude": ["**/node_modules", "**/dist"]
