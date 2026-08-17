@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy root configs
+COPY package.json package-lock.json ./
+
+# Copy workspace package.json files
+COPY apps/user-service/package.json ./apps/user-service/
+COPY packages/db/package.json ./packages/db/
+COPY packages/errors/package.json ./packages/errors/
+COPY packages/auth-client/package.json ./packages/auth-client/
+
+# Install dependencies for all workspaces
+RUN npm install
+
+# Copy remaining source code
+COPY . .
+RUN npm run build -w @nexus/db
+RUN npm run build -w @nexus/errors
+RUN npm run build -w @nexus/auth-client
+EXPOSE 4002
+
+CMD ["npm", "run", "dev", "-w", "@nexus/user-service"]

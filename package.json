@@ -10,6 +10,7 @@
     "dev:build": "docker compose -f docker-compose.dev.yml up --build",
     "down": "docker compose -f docker-compose.dev.yml down",
     "dev:auth": "npm --workspace=apps/auth-service run dev",
+    "dev:user": "npm --workspace=apps/user-service run dev",
     "dev:api": "npm --workspace=apps/api run dev",
     "dev:web": "npm --workspace=apps/web run dev",
     "build": "tsc -b",

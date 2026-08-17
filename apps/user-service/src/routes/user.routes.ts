@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { searchUsers } from "./user.controller";
-import { requireAuth } from "../../common/middleware";
+import { searchUsers } from "../Controller/user.controller";
+import { requireAuth } from "@nexus/auth-client";
 
 const userRouter = Router();
 
